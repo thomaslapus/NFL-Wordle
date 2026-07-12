@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Guess the daily NFL player in 8 tries!">
+    <!-- Emoji favicon — no image file needed, works in all modern browsers -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
+    <meta property="og:title" content="NFL Wordle">
+    <meta property="og:description" content="Guess the daily NFL player in 8 tries!">
+    <meta property="og:type" content="website">
+    <title>NFL Wordle</title>
+    <link rel="stylesheet" href="NFL-Wordle.css?v=2">
+</head>
+<body>
+
+    <!--
+        Was: <header> element inside a CSS grid layout with left/right panel columns
+        Now: proper <nav> bar — fixed to top, holds logo, page links, and help button
+    -->
+    <nav id="navbar">
+        <div class="nav-brand">🏈 NFL Wordle</div>
+        <div class="nav-links">
+            <!-- active class highlights the current page -->
+            <a href="/" class="nav-link active">Play</a>
+            <!-- disabled until a Stats page is built -->
+            <a href="#" class="nav-link disabled">Stats</a>
+        </div>
+        <!--
+            Was: <img id="question-mark"> in a separate .left-panel div
+            Now: a proper <button> in the navbar with an aria-label for accessibility
+        -->
+        <button id="how-to-play-btn" class="nav-btn" aria-label="How to Play">?</button>
+    </nav>
+
+    <main>
+        <!-- Puzzle date on the left, countdown timer on the right — both set by JS -->
+        <div id="puzzle-info">
+            <span id="puzzle-date"></span>
+            <span id="countdown"></span>
+        </div>
+
+        <!--
+            New: stats bar — reads win/streak data from localStorage so stats
+            persist across page refreshes and browser sessions without a database
+        -->
+        <div id="stats-bar">
+            <div class="stat-item">
+                <span class="stat-value" id="stat-played">0</span>
+                <span class="stat-label">Played</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-winpct">0%</span>
+                <span class="stat-label">Win %</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-streak">0</span>
+                <span class="stat-label">Streak</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-maxstreak">0</span>
+                <span class="stat-label">Best</span>
+            </div>
+        </div>
+
+        <p id="loading-message">Loading today's puzzle...</p>
+        <p id="error-message" class="hidden-error">Failed to load. Please refresh the page.</p>
+
+        <!--
+            Was: <div class="gamebox"> wrapping a redundant inner <div>
+            Now: gamebox directly wraps the table; inner div removed
+            Added: data-guess="N" on each row so JS can find them by guess number
+            regardless of whether the hidden class is present or not
+        -->
+        <div class="gamebox">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th class="table-header" width="30%">Name</th>
+                        <th class="table-header" width="26%">Team</th>
+                        <th class="table-header" width="12%">Position</th>
+                        <th class="table-header" width="10%">Age</th>
+                        <th class="table-header" width="12%">Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="hidden-row1" data-guess="1">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row2" data-guess="2">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row3" data-guess="3">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row4" data-guess="4">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row5" data-guess="5">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row6" data-guess="6">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row7" data-guess="7">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                    <tr class="hidden-row8" data-guess="8">
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td><td class="table-cell"></td>
+                        <td class="table-cell"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="custom-datalist">
+            <input type="text" id="input" placeholder="Search for a player..." autocomplete="off">
+            <ul id="suggestions" class="hidden-suggestions"></ul>
+        </div>
+    </main>
+
+    <!--
+        Was: positioned outside </html> (invalid HTML) with a hardcoded left: calc(50% - 400px)
+        Now: inside <body>, uses a full-screen overlay like result-modal
+        Added: ✕ close button inside the modal itself
+    -->
+    <div id="how-to-play-box" class="hidden-how-to-play">
+        <div id="how-to-play">
+            <button id="how-to-play-close" class="modal-close-btn" aria-label="Close">✕</button>
+            <h2>How to Play</h2>
+            <p>Guess the daily NFL player from the 2025–2026 season by typing their name in the search box.</p>
+            <ul>
+                <li>You have <strong>8 attempts</strong> to guess the correct player.</li>
+                <li>After each guess the table fills with clues about the player you picked.</li>
+                <li><span class="legend-green">Green</span> — exact match for that column.</li>
+                <li><span class="legend-gold">Yellow</span> — Team: same division · Position: same group (offense/defense/ST) · Age: within 5 years · Number: within 10.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Result modal: shown on win or loss -->
+    <div id="result-modal" class="hidden-modal">
+        <div id="result-content">
+            <h2 id="result-title"></h2>
+            <p id="result-message"></p>
+            <button id="result-close">Close</button>
+        </div>
+    </div>
+
+    <!--
+        defer: script downloads in parallel with HTML parsing but only executes
+        after the full DOM is built — so all getElementById calls above find their elements
+    -->
+    <script src="NFL-Wordle.js" defer></script>
+</body>
+</html>

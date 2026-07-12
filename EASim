@@ -1,0 +1,89 @@
+#ifndef PLAYBOOK_H
+#define PLAYBOOK_H
+#include <string>
+//Class Playbook
+
+class Playbook {
+public:
+    Play offensePlays[maxPlays];
+    Play defensePlays[maxPlays];
+    Play specialTeamsPlays[maxPlays];
+
+private:
+    int maxPlays = 100;
+};
+
+class Play {
+public:
+    std::string name;
+    std::string description;
+
+
+};
+
+
+class Offense : public Play {
+
+
+};
+
+class OffensiveFormation : public Offense {
+
+};
+
+class Run : public OffensiveFormation {
+
+};
+
+class Pass : public OffensiveFormation {
+
+};
+
+class Personnel : public OffensiveFormation {
+
+};
+
+
+
+class Defense : public Play {
+
+};
+
+class DefensiveFormation : public Defense {
+
+};
+
+class Man : public DefensiveFormation {
+
+};
+
+class Zone : public DefensiveFormation {
+
+};
+
+class Blitz : public DefensiveFormation {
+
+};
+
+
+
+class SpecialTeams : public Play {
+
+};
+
+class SpecialTeamsFormation : public SpecialTeams {
+
+};
+
+class kick : public SpecialTeamsFormation {
+
+};
+
+class punt : public SpecialTeamsFormation {
+
+};
+
+
+
+
+#endif // PLAYBOOK_H

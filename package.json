@@ -1,0 +1,14 @@
+{
+  "name": "nflwordleserver",
+  "version": "1.0.0",
+  "description": "Daily NFL player guessing game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["nfl", "wordle", "game"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

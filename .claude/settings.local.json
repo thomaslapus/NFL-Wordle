@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(curl -s http://localhost:3000/api/players)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'{len\\(d\\)} players'\\)\")",
+      "Bash(curl -s http://localhost:3000/api/daily-player)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('full_name','?'\\)\\)\")",
+      "Bash(curl -sI http://localhost:3000/NFL-Wordle.css)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/doesnotexist.html)",
+      "Bash(kill 60711)"
+    ]
+  }
+}
