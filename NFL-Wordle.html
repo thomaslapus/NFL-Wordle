@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <title>NFL Wordle</title>
     <link rel="stylesheet" href="shared.css">
-    <link rel="stylesheet" href="NFL-Wordle.css?v=3">
+    <link rel="stylesheet" href="NFL-Wordle.css?v=9">
 </head>
 <body>
 
@@ -20,27 +20,87 @@
         Now: proper <nav> bar — fixed to top, holds logo, page links, and help button
     -->
     <nav id="navbar">
-        <a href="/" class="nav-brand">🏈 MidStats</a>
+        <a href="/" class="nav-brand">Mid Stats</a>
         <div class="nav-links">
             <a href="/" class="nav-link">Home</a>
             <a href="/stats.html" class="nav-link">NFL Stats</a>
             <a href="/NFL-Wordle.html" class="nav-link active">NFL Wordle</a>
         </div>
-        <button id="how-to-play-btn" class="nav-btn" aria-label="How to Play">?</button>
     </nav>
 
     <main>
-        <!-- Puzzle date on the left, countdown timer on the right — both set by JS -->
-        <div id="puzzle-info">
-            <span id="puzzle-date"></span>
-            <span id="countdown"></span>
+        <p id="loading-message">Loading today's puzzle...</p>
+        <p id="error-message" class="hidden-error">Failed to load. Please refresh the page.</p>
+
+        <!-- ? button on the left, gamebox + input stacked on the right — tops aligned -->
+        <div id="game-area">
+            <button id="how-to-play-btn" class="nav-btn" aria-label="How to Play">?</button>
+            <div id="game-content">
+                <div class="gamebox">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th class="table-header" width="36%">Name</th>
+                                <th class="table-header" width="27%">Team</th>
+                                <th class="table-header" width="13%">Position</th>
+                                <th class="table-header" width="11%">Age</th>
+                                <th class="table-header" width="13%">Number</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="hidden-row1" data-guess="1">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row2" data-guess="2">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row3" data-guess="3">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row4" data-guess="4">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row5" data-guess="5">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row6" data-guess="6">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row7" data-guess="7">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                            <tr class="hidden-row8" data-guess="8">
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td><td class="table-cell"></td>
+                                <td class="table-cell"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="custom-datalist">
+                    <input type="text" id="input" placeholder="Search for a player..." autocomplete="off">
+                    <ul id="suggestions" class="hidden-suggestions"></ul>
+                </div>
+            </div>
         </div>
 
-        <!--
-            New: stats bar — reads win/streak data from localStorage so stats
-            persist across page refreshes and browser sessions without a database
-        -->
-        <div id="stats-bar">
+        <!-- hidden until win or lose — JS removes hidden-stats on game end -->
+        <div id="stats-bar" class="hidden-stats">
             <div class="stat-item">
                 <span class="stat-value" id="stat-played">0</span>
                 <span class="stat-label">Played</span>
@@ -57,76 +117,6 @@
                 <span class="stat-value" id="stat-maxstreak">0</span>
                 <span class="stat-label">Best</span>
             </div>
-        </div>
-
-        <p id="loading-message">Loading today's puzzle...</p>
-        <p id="error-message" class="hidden-error">Failed to load. Please refresh the page.</p>
-
-        <!--
-            Was: <div class="gamebox"> wrapping a redundant inner <div>
-            Now: gamebox directly wraps the table; inner div removed
-            Added: data-guess="N" on each row so JS can find them by guess number
-            regardless of whether the hidden class is present or not
-        -->
-        <div class="gamebox">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th class="table-header" width="30%">Name</th>
-                        <th class="table-header" width="26%">Team</th>
-                        <th class="table-header" width="12%">Position</th>
-                        <th class="table-header" width="10%">Age</th>
-                        <th class="table-header" width="12%">Number</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="hidden-row1" data-guess="1">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row2" data-guess="2">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row3" data-guess="3">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row4" data-guess="4">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row5" data-guess="5">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row6" data-guess="6">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row7" data-guess="7">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                    <tr class="hidden-row8" data-guess="8">
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td><td class="table-cell"></td>
-                        <td class="table-cell"></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="custom-datalist">
-            <input type="text" id="input" placeholder="Search for a player..." autocomplete="off">
-            <ul id="suggestions" class="hidden-suggestions"></ul>
         </div>
     </main>
 
