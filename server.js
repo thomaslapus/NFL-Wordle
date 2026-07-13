@@ -186,7 +186,7 @@ const server = http.createServer((req, res) => {
     // ---- Static file serving ----
 
     // Build the file path; map "/" to the main HTML file
-    const filePath = path.join(__dirname, urlPath === "/" ? "NFL-Wordle.html" : urlPath);
+    const filePath = path.join(__dirname, urlPath === "/" ? "index.html" : urlPath);
 
     // Path traversal protection:
     // Was: no protection — a crafted URL like /../../etc/passwd would resolve outside the project

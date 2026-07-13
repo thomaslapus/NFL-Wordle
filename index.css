@@ -1,0 +1,103 @@
+/* ============================================================
+   MidStats — Homepage styles
+   ============================================================ */
+
+main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: calc(var(--nav-h) + 60px) 16px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+}
+
+/* ---- Hero ---- */
+#hero {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+}
+
+#hero-sub {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+}
+
+/* ---- Feature cards ---- */
+#cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: var(--shadow);
+}
+
+.card:not(.card-disabled):hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+.card-disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.card-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.card p {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    flex: 1;
+}
+
+.card-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    align-self: flex-start;
+    margin-top: 4px;
+}
+
+.tag-live {
+    background: var(--accent);
+    color: #fff;
+}
+
+.tag-soon {
+    background: var(--surface-3);
+    color: var(--text-dim);
+}

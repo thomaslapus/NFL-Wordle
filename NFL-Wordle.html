@@ -10,7 +10,8 @@
     <meta property="og:description" content="Guess the daily NFL player in 8 tries!">
     <meta property="og:type" content="website">
     <title>NFL Wordle</title>
-    <link rel="stylesheet" href="NFL-Wordle.css?v=2">
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="NFL-Wordle.css?v=3">
 </head>
 <body>
 
@@ -19,17 +20,12 @@
         Now: proper <nav> bar — fixed to top, holds logo, page links, and help button
     -->
     <nav id="navbar">
-        <div class="nav-brand">🏈 NFL Wordle</div>
+        <a href="/" class="nav-brand">🏈 MidStats</a>
         <div class="nav-links">
-            <!-- active class highlights the current page -->
-            <a href="/" class="nav-link active">Play</a>
-            <!-- disabled until a Stats page is built -->
-            <a href="#" class="nav-link disabled">Stats</a>
+            <a href="/" class="nav-link">Home</a>
+            <a href="/stats.html" class="nav-link">NFL Stats</a>
+            <a href="/NFL-Wordle.html" class="nav-link active">NFL Wordle</a>
         </div>
-        <!--
-            Was: <img id="question-mark"> in a separate .left-panel div
-            Now: a proper <button> in the navbar with an aria-label for accessibility
-        -->
         <button id="how-to-play-btn" class="nav-btn" aria-label="How to Play">?</button>
     </nav>
 
