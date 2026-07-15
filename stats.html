@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="NFL player and game stats — MidStats">
+    <meta name="description" content="NFL player and team stats — Mid Stats">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-    <title>NFL Stats — MidStats</title>
+    <title>NFL Stats — Mid Stats</title>
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="stats.css">
 </head>
 <body>
 
     <nav id="navbar">
-        <a href="/" class="nav-brand">🏈 MidStats</a>
+        <a href="/" class="nav-brand">Mid Stats</a>
         <div class="nav-links">
             <a href="/" class="nav-link">Home</a>
             <a href="/stats.html" class="nav-link active">NFL Stats</a>
@@ -21,12 +21,98 @@
     </nav>
 
     <main>
-        <div id="coming-soon-box">
-            <div id="coming-soon-icon">📊</div>
-            <h1>NFL Stats</h1>
-            <p>Player and game stats from across the league — coming soon.</p>
+
+        <!-- Top-level tabs: Players / Teams -->
+        <div class="page-tabs">
+            <button class="page-tab active" data-panel="panel-players">Player Stats</button>
+            <button class="page-tab" data-panel="panel-teams">Team Stats</button>
         </div>
+
+        <!-- ===== PLAYER STATS ===== -->
+        <div id="panel-players" class="page-panel">
+
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-panel="sub-compare">Comparison</button>
+                <button class="sub-tab" data-panel="sub-pcharts">Charts</button>
+            </div>
+
+            <!-- Player Comparison -->
+            <div id="sub-compare" class="sub-panel">
+                <div class="compare-controls">
+                    <div class="control-group">
+                        <label class="control-label">Position</label>
+                        <select id="pos-select" class="stats-select">
+                            <option value="QB">QB</option>
+                            <option value="RB" selected>RB</option>
+                            <option value="WR">WR</option>
+                            <option value="TE">TE</option>
+                            <option value="DL">DL</option>
+                            <option value="LB">LB</option>
+                            <option value="DB">DB</option>
+                            <option value="K">K</option>
+                        </select>
+                    </div>
+                    <div id="player-selects" class="player-selects">
+                        <p class="loading-note">Loading players…</p>
+                    </div>
+                </div>
+                <div id="compare-table-wrap"></div>
+            </div>
+
+            <!-- Player Charts -->
+            <div id="sub-pcharts" class="sub-panel hidden">
+                <p class="section-note">Top 30 Running Backs — 2025 Season (dummy data)</p>
+                <div id="rb-charts"></div>
+            </div>
+
+        </div>
+
+        <!-- ===== TEAM STATS ===== -->
+        <div id="panel-teams" class="page-panel hidden">
+
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-panel="sub-tlist">Rankings</button>
+                <button class="sub-tab" data-panel="sub-tcharts">Charts</button>
+            </div>
+
+            <!-- Team Rankings Table -->
+            <div id="sub-tlist" class="sub-panel">
+                <p class="section-note">All 32 NFL Teams — 2025 Season (dummy data). Click a column header to sort.</p>
+                <div class="table-scroll">
+                    <table id="team-table" class="stats-table">
+                        <thead>
+                            <tr>
+                                <th class="col-team">Team</th>
+                                <th class="sortable" data-col="ppg">PPG <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-col="ypg">YPG <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-col="yapg">Yds Allowed/G <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-col="papg">Pts Allowed/G <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-col="sos">Opp. SOS <span class="sort-icon">⇅</span></th>
+                            </tr>
+                            <tr class="filter-row">
+                                <td><input class="filter-input" data-col="name" placeholder="Filter team…"></td>
+                                <td><input class="filter-input" data-col="ppg" placeholder="e.g. >25"></td>
+                                <td><input class="filter-input" data-col="ypg" placeholder="e.g. >350"></td>
+                                <td><input class="filter-input" data-col="yapg" placeholder="e.g. <340"></td>
+                                <td><input class="filter-input" data-col="papg" placeholder="e.g. <25"></td>
+                                <td><input class="filter-input" data-col="sos" placeholder="e.g. >0.5"></td>
+                            </tr>
+                        </thead>
+                        <tbody id="team-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Team Charts -->
+            <div id="sub-tcharts" class="sub-panel hidden">
+                <p class="section-note">All 32 NFL Teams — 2025 Season (dummy data)</p>
+                <div id="team-charts"></div>
+            </div>
+
+        </div>
+
     </main>
 
+    <script src="stats.js" defer></script>
 </body>
 </html>
