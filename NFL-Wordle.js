@@ -134,6 +134,7 @@ function updateStats(won) {
         saveStats(stats);
     }
 
+    document.getElementById("stats-bar").classList.remove("hidden-stats"); // reveal on game end
     renderStats(stats);
 }
 
@@ -155,13 +156,14 @@ function renderStats(stats) {
 //      setInterval re-runs tick() every 1000ms (1 second) so the display stays current.
 function startCountdown() {
     const el = document.getElementById("countdown");
+    if (!el) return; // element removed from HTML — skip silently
 
     function pad(n) { return String(n).padStart(2, "0"); }
 
     function tick() {
         const now      = Date.now();
         const tomorrow = new Date();
-        tomorrow.setUTCHours(24, 0, 0, 0); // next midnight in UTC
+        tomorrow.setUTCHours(24, 0, 0, 0);
         const diff = tomorrow - now;
 
         const h = Math.floor(diff / 3_600_000);
@@ -212,12 +214,12 @@ function startGame() {
         });
     }
 
-    // Set the puzzle date display (e.g. "Saturday, June 15")
-    document.getElementById("puzzle-date").textContent =
+    const dateEl = document.getElementById("puzzle-date");
+    if (dateEl) dateEl.textContent =
         new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
     startCountdown();
-    renderStats(loadStats()); // show persisted stats immediately on load
+    document.getElementById("stats-bar").classList.add("hidden-stats"); // hide until game ends
 }
 
 // ============================================================
