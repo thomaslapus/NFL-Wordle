@@ -17,7 +17,7 @@
     --border:    #3a3f4a;   /* dividers */
     --danger:    #ff6b6b;   /* error messages */
     --nav-h:     60px;      /* navbar height — used in main padding-top */
-    --radius:    8px;
+    --radius:    2px;
     --shadow:    0 4px 20px rgba(0, 0, 0, 0.45);
 }
 
@@ -32,6 +32,7 @@ body {
     /* Was: CSS grid with left-panel / article / right-panel columns (complex, hard to maintain)
        Now: plain block layout; nav is fixed, main is a centered column */
     min-height: 100vh;
+    width: 100%;
     background-color: var(--bg);
     font-family: 'Segoe UI', Arial, sans-serif;
     color: var(--text);
@@ -127,12 +128,13 @@ body {
    Now: centered max-width column with auto side margins
    ============================================================ */
 main {
-    max-width: 680px;
+    max-width: 1000px;
+    width: 100%;
     margin: 0 auto;
     /* top padding = navbar height + breathing room so content clears the fixed bar */
     padding: calc(var(--nav-h) + 24px) 16px 60px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 16px;
 }
@@ -214,18 +216,42 @@ main {
    Now: border-radius + overflow:hidden clips the table corners cleanly;
         shadow gives it a card appearance
    ============================================================ */
+#game-area {
+    display: flex;
+    align-items: flex-start;  /* tops of button and gamebox align */
+    gap: 10px;
+    width: 100%;
+}
+
+#game-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;  /* prevents flex child from overflowing its container */
+}
+
+#how-to-play-btn {
+    flex-shrink: 0;  /* prevents button from squishing when space is tight */
+}
+
+#stats-bar.hidden-stats {
+    display: none;
+}
+
 .gamebox {
     width: 100%;
-    border-radius: 10px;
-    overflow: hidden;  /* clips table cell corners so they respect the parent's border-radius */
+    border-radius: 2px;
+    overflow: hidden;
     box-shadow: var(--shadow);
 }
 
 .table {
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
     width: 100%;
     text-align: center;
+    border-radius: 2px;
 }
 
 /* Was: large font with text-shadow; looked heavy
@@ -394,15 +420,16 @@ main {
 }
 
 #how-to-play {
-    position: relative;   /* needed for the absolute-positioned close button */
+    position: relative;
     background: var(--surface-2);
-    border-radius: 12px;
+    border-radius: 2px;
     padding: 32px;
     max-width: 480px;
     width: 90%;
     box-shadow: var(--shadow);
     /* Was: 10px inset border in --accent color — removed, looks dated */
 }
+
 
 #how-to-play h2 {
     font-size: 1.3rem;
@@ -497,7 +524,7 @@ main {
     background: var(--surface-2);
     color: var(--text);
     padding: 32px 40px;
-    border-radius: 12px;
+    border-radius: 2px;
     text-align: center;
     max-width: 360px;
     width: 90%;
