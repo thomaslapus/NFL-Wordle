@@ -175,9 +175,14 @@ const server = http.createServer((req, res) => {
 
     // ---- API: today's daily player ----
     if (urlPath === "/api/daily-player") {
+        if (playerData.length === 0) {
+            res.writeHead(503, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Player data unavailable — Sleeper API may be down" }));
+            return;
+        }
         res.writeHead(200, {
             "Content-Type":  "application/json",
-            "Cache-Control": "no-store", // never cache the answer
+            "Cache-Control": "no-store",
         });
         res.end(JSON.stringify(getDailyPlayer()));
         return;
