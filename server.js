@@ -5,26 +5,26 @@ const path = require("path");
 
 const PORT = process.env.PORT || 3000;
 
-// ── API-Sports NFL ────────────────────────────────────────────────────────────
-// Set APISPORTS_KEY in your environment before starting the server.
-//   Local:  export APISPORTS_KEY=your_key_here  (in terminal before node server.js)
-//   Render: Dashboard → Environment → Add APISPORTS_KEY=your_key_here
+// ── Tank01 NFL API (via RapidAPI) ─────────────────────────────────────────────
+// Set RAPIDAPI_KEY in your environment before starting the server.
+//   Local:  export RAPIDAPI_KEY=your_key_here  (in terminal before node server.js)
+//   Render: Dashboard → Environment → Add RAPIDAPI_KEY=your_key_here
 //
-// Free plan: 100 calls/day.  The 2025 season is done, so data is historical —
-// we fetch ~66 calls ONCE on first boot, cache to disk, and never fetch again.
-const APISPORTS_KEY = process.env.APISPORTS_KEY || "";
-const NFL_LEAGUE    = 1;     // 1 = NFL in API-Sports
+// Free plan: 1,000 calls/month. Data is historical (2025 season done),
+// so we fetch ~33 calls ONCE on first boot, cache to disk, and never fetch again.
+const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY || "";
+const RAPIDAPI_HOST = "tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com";
+const TANK01_BASE   = `https://${RAPIDAPI_HOST}`;
 const NFL_SEASON    = 2025;
 
 // ── Persistent cache directory ────────────────────────────────────────────────
-// JSON files in ./data/ survive server restarts (important on Render free tier).
 const DATA_DIR = path.join(__dirname, "data");
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // ── In-memory state ───────────────────────────────────────────────────────────
 let playerData  = [];    // Wordle: Sleeper API — free, unlimited, has jersey numbers
-let teamStats   = null;  // Stats page: API-Sports, persisted to disk
-let playerStats = null;  // Stats page: API-Sports, persisted to disk
+let teamStats   = null;  // Stats page: Tank01, persisted to disk
+let playerStats = null;  // Stats page: Tank01, persisted to disk
 
 // ── Logger ────────────────────────────────────────────────────────────────────
 function log(level, message) {
@@ -58,8 +58,6 @@ const CONTENT_TYPES = {
 const CACHE_MAX_AGE = { ".css": 86_400, ".js": 86_400, ".png": 604_800, ".jpg": 604_800 };
 
 // ── Sleeper: Wordle player list ───────────────────────────────────────────────
-// Sleeper is kept for the Wordle because it provides jersey number + age,
-// which the comparison rows need and which API-Sports doesn't expose.
 async function fetchPlayerData() {
     try {
         log("info", "Fetching player data from Sleeper API...");
@@ -81,49 +79,43 @@ function getDailyPlayer() {
     return playerData[Math.abs(hash)];
 }
 
-// ── API-Sports helpers ────────────────────────────────────────────────────────
-async function apiSportsGet(endpoint, params = {}) {
-    if (!APISPORTS_KEY) throw new Error("APISPORTS_KEY not set");
-    const url = new URL(`https://v1.american-football.api-sports.io${endpoint}`);
+// ── Tank01 helpers ────────────────────────────────────────────────────────────
+async function tank01Get(endpoint, params = {}) {
+    if (!RAPIDAPI_KEY) throw new Error("RAPIDAPI_KEY not set");
+    const url = new URL(`${TANK01_BASE}${endpoint}`);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
 
-    const res = await fetch(url.toString(), { headers: { "x-apisports-key": APISPORTS_KEY } });
+    const res = await fetch(url.toString(), {
+        headers: {
+            "X-RapidAPI-Key":  RAPIDAPI_KEY,
+            "X-RapidAPI-Host": RAPIDAPI_HOST,
+        },
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${endpoint}`);
 
     const json = await res.json();
-    if (json.errors && Object.keys(json.errors).length) throw new Error(JSON.stringify(json.errors));
+    if (json.statusCode && json.statusCode !== 200) {
+        throw new Error(`Tank01 status ${json.statusCode}: ${JSON.stringify(json.body)}`);
+    }
 
-    const remaining = json["remaining"]?.["requests-day"] ?? "?";
-    log("info", `API-Sports ${endpoint} → ${json.results ?? 0} results, ${remaining} calls left today`);
-    return json.response;
+    return json.body;
 }
 
-// Try to read a numeric stat from API-Sports response — handles both
-// array [{type,value}] and nested-object {passing:{yards:N}} formats.
-function getStat(data, ...keys) {
-    if (!data) return 0;
-    if (Array.isArray(data)) {
-        for (const item of data)
-            for (const k of keys)
-                if (item.type === k || item.name === k) return parseFloat(item.value) || 0;
-        return 0;
-    }
-    for (const k of keys) {
-        const val = k.split(".").reduce((cur, part) => cur?.[part], data);
-        if (val !== undefined && val !== null) return parseFloat(val) || 0;
+// Try multiple field name paths on an object — returns first truthy value.
+function pick(obj, ...paths) {
+    if (!obj) return 0;
+    for (const p of paths) {
+        const val = p.split(".").reduce((cur, k) => cur?.[k], obj);
+        if (val !== undefined && val !== null && val !== "") return parseFloat(val) || 0;
     }
     return 0;
-}
-
-function abbrevFromName(name = "") {
-    const w = name.split(" ");
-    return w[w.length - 1].slice(0, 3).toUpperCase();
 }
 
 function simplifyPos(pos = "") {
     if (["DE","DT","NT"].includes(pos)) return "DL";
     if (["CB","S","FS","SS"].includes(pos)) return "DB";
     if (["OT","OG","C","G","T"].includes(pos)) return "OL";
+    if (["ILB","OLB","MLB"].includes(pos)) return "LB";
     return pos;
 }
 
@@ -137,60 +129,79 @@ function writeDiskCache(file, data) {
 }
 
 // ── Build team stats ──────────────────────────────────────────────────────────
-// Calls: 1 (standings) + 1 (teams) + 32 (team statistics) = 34 total
+// 1 call to /getNFLTeams — returns all 32 teams with record + stats
 async function buildTeamStats() {
-    log("info", "=== Fetching team stats from API-Sports (34 calls) ===");
+    log("info", "=== Fetching team stats from Tank01 (1 call) ===");
 
-    const standings = await apiSportsGet("/standings", { league: NFL_LEAGUE, season: NFL_SEASON });
-    const teams     = await apiSportsGet("/teams",     { league: NFL_LEAGUE, season: NFL_SEASON });
+    const body  = await tank01Get("/getNFLTeams", { teamStats: "true", topPerformers: "true" });
+    const teams = body?.nflTeams ?? (Array.isArray(body) ? body : []);
 
-    const teamMap = {};
-    for (const t of (teams || [])) teamMap[t.id] = t;
-
-    const standMap = {};
-    for (const s of (standings || [])) if (s.team?.id) standMap[s.team.id] = s;
+    if (teams.length > 0) {
+        log("info", `Tank01 team keys: ${Object.keys(teams[0]).join(", ")}`);
+        if (teams[0].teamStats) {
+            const ts = teams[0].teamStats;
+            log("info", `teamStats keys: ${Object.keys(ts).join(", ")}`);
+            // Log one level deeper to reveal subcategory field names
+            for (const cat of Object.keys(ts).slice(0, 3)) {
+                if (typeof ts[cat] === "object") {
+                    log("info", `  teamStats.${cat} keys: ${Object.keys(ts[cat]).join(", ")}`);
+                }
+            }
+        }
+        if (teams[0].logos) log("info", `logos[0]: ${JSON.stringify(teams[0].logos[0])}`);
+    }
 
     const result = [];
 
-    for (const [id, stand] of Object.entries(standMap)) {
-        const team  = teamMap[id] ?? stand.team ?? {};
-        const games = (stand.won || 0) + (stand.lost || 0) + (stand.ties || 0) || 17;
-        const ptsFor = stand.points?.for ?? 0;
-        const ptsAg  = stand.points?.against ?? 0;
+    for (const t of teams) {
+        const wins  = parseInt(t.wins)  || 0;
+        const loss  = parseInt(t.loss)  || 0;
+        const tie   = parseInt(t.tie)   || 0;
+        const games = wins + loss + tie || 17;
+        const pf    = parseFloat(t.pf)  || 0;
+        const pa    = parseFloat(t.pa)  || 0;
 
+        // Logo — Tank01 returns logos as an array of objects or an array of strings
+        let logo = "";
+        if (Array.isArray(t.logos) && t.logos.length) {
+            const l = t.logos[0];
+            logo = typeof l === "string" ? l : (l?.src ?? l?.href ?? l?.url ?? "");
+        }
+        if (!logo) logo = t.espnLogo1 ?? t.espnLogo ?? "";
+
+        // Yards stats from teamStats (Tank01's exact sub-keys logged above on first run)
         let ypg = 0, yapg = 0;
-        try {
-            const stats = await apiSportsGet("/teams/statistics", {
-                league: NFL_LEAGUE, season: NFL_SEASON, team: id,
-            });
-            // Field names differ by API version — try all known aliases
-            ypg  = getStat(stats,
-                "total_yards", "Total Yards", "total_net_yards",
-                "Total Net Yards", "Offensive Yards", "yards.gained",
-                "passing.yards",  // fallback: passing only
+        const ts = t.teamStats;
+        if (ts) {
+            // Offensive yards — try common nested patterns first
+            ypg = pick(ts,
+                "Offense.totalYards", "offense.totalYards",
+                "Passing.passYds",    "passing.passYds",
+                "totalYards",         "totalYds",
+                "offYards",           "offTotalYds",
             );
-            yapg = getStat(stats,
-                "yards_allowed", "Total Yards Allowed", "Yards Allowed",
-                "Defensive Yards", "yards.allowed",
+            // Defensive yards allowed
+            yapg = pick(ts,
+                "Defense.totalYards", "defense.totalYards",
+                "defenseTotalYards",  "yardsAllowed",
+                "defYards",           "defTotalYds",
             );
-            // If the API returned season totals rather than per-game, convert
+            // If season totals (not per-game), convert
             if (ypg  > 3_000) ypg  = +(ypg  / games).toFixed(1);
             if (yapg > 3_000) yapg = +(yapg / games).toFixed(1);
-        } catch (err) {
-            log("warn", `Team stats skipped for team ${id}: ${err.message}`);
         }
 
         result.push({
-            id:         Number(id),
-            name:       team.name ?? "Unknown",
-            abbr:       (team.code ?? abbrevFromName(team.name)).toUpperCase(),
-            logo:       team.logo ?? "",
-            conference: stand.conference ?? "",
-            division:   stand.division   ?? "",
-            won:        stand.won  ?? 0,
-            lost:       stand.lost ?? 0,
-            ppg:        games > 0 ? +(ptsFor / games).toFixed(1) : 0,
-            papg:       games > 0 ? +(ptsAg  / games).toFixed(1) : 0,
+            id:         t.teamID ?? t.teamAbv,
+            name:       `${t.teamCity ?? ""} ${t.teamName ?? ""}`.trim(),
+            abbr:       (t.teamAbv ?? "").toUpperCase(),
+            logo,
+            conference: t.conference ?? t.conferenceAbv ?? "",
+            division:   t.division   ?? "",
+            won:  wins,
+            lost: loss,
+            ppg:  games > 0 ? +(pf / games).toFixed(1) : 0,
+            papg: games > 0 ? +(pa / games).toFixed(1) : 0,
             ypg,
             yapg,
         });
@@ -202,76 +213,75 @@ async function buildTeamStats() {
 }
 
 // ── Build player stats ────────────────────────────────────────────────────────
-// Calls: 32 (one per team) = 32 total
-// Only keeps skill-position players (QB/RB/WR/TE/K) who actually played.
+// 32 calls — one per team — via /getNFLTeamRoster?teamAbv=XX&getStats=true
 async function buildPlayerStats(teams) {
-    log("info", "=== Fetching player stats from API-Sports (32 calls) ===");
+    log("info", "=== Fetching player stats from Tank01 (32 calls) ===");
     const KEEP = new Set(["QB","RB","WR","TE","K","FB"]);
     const all  = [];
+    let sampleLogged = false;
 
     for (const team of teams) {
         try {
-            const res = await apiSportsGet("/players/statistics", {
-                league: NFL_LEAGUE, season: NFL_SEASON, team: team.id,
+            const body   = await tank01Get("/getNFLTeamRoster", {
+                teamAbv:  team.abbr,
+                getStats: "true",
             });
+            const roster = body?.roster ?? (Array.isArray(body) ? body : []);
 
-            for (const entry of (res || [])) {
-                const p = entry.player;
-                if (!p) continue;
+            if (!sampleLogged && roster.length > 0) {
+                const s = roster[0];
+                log("info", `Player keys: ${Object.keys(s).join(", ")}`);
+                if (s.stats) log("info", `Player stats keys: ${Object.keys(s.stats).join(", ")}`);
+                sampleLogged = true;
+            }
 
-                const pos = simplifyPos(p.position ?? "");
+            for (const p of roster) {
+                const pos = simplifyPos(p.pos ?? p.position ?? "");
                 if (!KEEP.has(pos)) continue;
 
-                // statistics may be [{season,passing,...}] or a plain object
-                const raw = Array.isArray(entry.statistics)
-                    ? (entry.statistics.find(s => s.season === NFL_SEASON) ?? entry.statistics[0] ?? {})
-                    : (entry.statistics ?? {});
+                const s = p.stats ?? {};
 
-                const passing   = raw.passing   ?? {};
-                const rushing   = raw.rushing   ?? {};
-                const receiving = raw.receiving ?? {};
-                const gamesRaw  = raw.games     ?? {};
-
-                const games    = typeof gamesRaw === "number" ? gamesRaw : (gamesRaw.played ?? 0);
-                const passYds  = passing.yards       ?? 0;
-                const passTDs  = passing.touchdowns  ?? 0;
-                const passAtt  = passing.attempts    ?? 0;
-                const passComp = passing.completions ?? 0;
-                const rushYds  = rushing.yards       ?? 0;
-                const rushTDs  = rushing.touchdowns  ?? 0;
-                const rushAtt  = rushing.attempts    ?? 0;
-                const recYds   = receiving.yards       ?? 0;
-                const recTDs   = receiving.touchdowns  ?? 0;
-                const recRec   = receiving.receptions ?? receiving.total ?? 0;
+                // Try multiple camelCase / abbreviation patterns for each stat.
+                // The server logs above will reveal the actual key names on first run.
+                const passYds  = pick(s, "passYds",  "passYards",   "passingYards");
+                const passTDs  = pick(s, "passTD",   "passTDs",     "passingTDs",  "passScore");
+                const passAtt  = pick(s, "passAtt",  "passAttempts","attempts");
+                const passComp = pick(s, "passComp", "passCompletions", "completions");
+                const rushYds  = pick(s, "rushYds",  "rushYards",   "rushingYards");
+                const rushTDs  = pick(s, "rushTD",   "rushTDs",     "rushingTDs",  "rushScore");
+                const rushAtt  = pick(s, "carries",  "rushAtt",     "rushAttempts","att");
+                const recYds   = pick(s, "recYds",   "recYards",    "receivingYards");
+                const recTDs   = pick(s, "recTD",    "recTDs",      "receivingTDs","recScore");
+                const recRec   = pick(s, "receptions","rec",        "recCatches",  "catches");
+                const games    = pick(s, "gamesPlayed","games","GP") || pick(p, "gamesPlayed","games");
 
                 const totalYds = passYds + rushYds + recYds;
                 const totalTDs = passTDs + rushTDs + recTDs;
-
                 if (totalYds === 0 && totalTDs === 0 && games === 0) continue;
 
                 all.push({
-                    id:       p.id,
-                    name:     p.name ?? `${p.firstname ?? ""} ${p.lastname ?? ""}`.trim(),
+                    id:       p.playerID ?? p.id,
+                    name:     p.longName  ?? p.fullName ?? p.name ?? "",
                     pos,
                     team:     team.abbr,
                     teamName: team.name,
                     teamLogo: team.logo,
                     games,
                     passYds, passTDs, passAtt, passComp,
-                    compPct:  passAtt > 0  ? +(passComp / passAtt * 100).toFixed(1) : 0,
+                    compPct:  passAtt > 0 ? +(passComp / passAtt * 100).toFixed(1) : 0,
                     rushYds, rushTDs, rushAtt,
-                    ypc:     rushAtt > 0  ? +(rushYds / rushAtt).toFixed(1)  : 0,
-                    cpg:     games > 0    ? +(rushAtt / games).toFixed(1)    : 0,
-                    rushYpg: games > 0    ? +(rushYds / games).toFixed(1)    : 0,
+                    ypc:      rushAtt > 0 ? +(rushYds  / rushAtt).toFixed(1) : 0,
+                    cpg:      games > 0   ? +(rushAtt  / games).toFixed(1)   : 0,
+                    rushYpg:  games > 0   ? +(rushYds  / games).toFixed(1)   : 0,
                     recYds, recTDs, recRec,
-                    recYpg:  games > 0   ? +(recYds / games).toFixed(1)     : 0,
-                    recPg:   games > 0   ? +(recRec  / games).toFixed(1)    : 0,
+                    recYpg:   games > 0   ? +(recYds  / games).toFixed(1)    : 0,
+                    recPg:    games > 0   ? +(recRec   / games).toFixed(1)   : 0,
                     totalYds, totalTDs,
-                    ypg:     games > 0   ? +(totalYds / games).toFixed(1)   : 0,
+                    ypg:      games > 0   ? +(totalYds / games).toFixed(1)   : 0,
                 });
             }
         } catch (err) {
-            log("warn", `Player stats failed for ${team.name}: ${err.message}`);
+            log("warn", `Player stats failed for ${team.abbr}: ${err.message}`);
         }
     }
 
@@ -280,31 +290,31 @@ async function buildPlayerStats(teams) {
 }
 
 // ── Startup: load cache OR fetch in background ────────────────────────────────
-teamStats   = readDiskCache("team_stats_2025.json");
-playerStats = readDiskCache("player_stats_2025.json");
+teamStats   = readDiskCache("team_stats_tank01.json");
+playerStats = readDiskCache("player_stats_tank01.json");
 
 if (teamStats)   log("info", `Disk cache: ${teamStats.length} teams`);
 if (playerStats) log("info", `Disk cache: ${playerStats.length} players`);
 
-if ((!teamStats || !playerStats) && APISPORTS_KEY) {
-    log("info", "Starting background API-Sports fetch...");
+if ((!teamStats || !playerStats) && RAPIDAPI_KEY) {
+    log("info", "Starting background Tank01 fetch...");
     (async () => {
         try {
             if (!teamStats) {
                 teamStats = await buildTeamStats();
-                writeDiskCache("team_stats_2025.json", teamStats);
+                writeDiskCache("team_stats_tank01.json", teamStats);
             }
             if (!playerStats) {
                 playerStats = await buildPlayerStats(teamStats);
-                writeDiskCache("player_stats_2025.json", playerStats);
+                writeDiskCache("player_stats_tank01.json", playerStats);
             }
             log("info", "Background fetch complete — all stats cached to disk");
         } catch (err) {
             log("error", `Background fetch failed: ${err.message}`);
         }
     })();
-} else if (!APISPORTS_KEY) {
-    log("warn", "APISPORTS_KEY not set — /api/team-stats and /api/player-stats will return 503");
+} else if (!RAPIDAPI_KEY) {
+    log("warn", "RAPIDAPI_KEY not set — /api/team-stats and /api/player-stats will return 503");
 }
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
@@ -355,9 +365,9 @@ const server = http.createServer(async (req, res) => {
         // ── Stats: team data ────────────────────────────────────────
         if (urlPath === "/api/team-stats") {
             if (!teamStats) {
-                const message = APISPORTS_KEY
+                const message = RAPIDAPI_KEY
                     ? "Stats are loading — server is fetching 2025 data for the first time. Try again in ~60 seconds."
-                    : "APISPORTS_KEY is not configured on this server.";
+                    : "RAPIDAPI_KEY is not configured on this server.";
                 res.writeHead(503, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ status: "loading", message }));
                 return;
@@ -370,9 +380,9 @@ const server = http.createServer(async (req, res) => {
         // ── Stats: player data ──────────────────────────────────────
         if (urlPath === "/api/player-stats") {
             if (!playerStats) {
-                const message = APISPORTS_KEY
+                const message = RAPIDAPI_KEY
                     ? "Player stats are loading — server is fetching 2025 data. Try again in ~90 seconds."
-                    : "APISPORTS_KEY is not configured on this server.";
+                    : "RAPIDAPI_KEY is not configured on this server.";
                 res.writeHead(503, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ status: "loading", message }));
                 return;
