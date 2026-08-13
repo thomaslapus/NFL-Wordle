@@ -17,6 +17,46 @@ main {
     margin-bottom: 16px;
 }
 
+/* ── Season bar ── */
+.season-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.season-bar-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+}
+.season-note {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+/* ── Chart position tabs ── */
+.chart-pos-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+.chart-pos-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.13s, color 0.13s, border-color 0.13s;
+}
+.chart-pos-btn:hover { background: rgba(70,140,255,0.1); color: var(--text); }
+.chart-pos-btn.active { background: rgba(70,140,255,0.18); border-color: rgba(106,171,240,0.4); color: var(--accent-2); }
+
 /* ============================================================
    Page-level tabs
    ============================================================ */

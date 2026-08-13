@@ -92,6 +92,54 @@ const PLAYERS = [
       stats:{ "Rec":"77", "Rec Yds":"842", "Rec TD":"6","Tgts":"108","YPR":"10.9","Catch%":"71.3%" } },
 ];
 
+// Active player list — replaced by API data when available, falls back to PLAYERS
+let players = PLAYERS;
+
+// Convert a /api/player-stats entry into the PLAYERS format
+function apiPlayerToFantasy(p) {
+    const rawPts = +(
+        (p.passYds || 0) * 0.04 +
+        (p.passTDs || 0) * 4 +
+        (p.rushYds || 0) * 0.1 +
+        (p.rushTDs || 0) * 6 +
+        (p.recYds  || 0) * 0.1 +
+        (p.recTDs  || 0) * 6 +
+        (p.recRec  || 0) * 0.5   // half-PPR baseline
+    ).toFixed(1);
+
+    const stats = {};
+    if (p.pos === "QB") {
+        stats["Comp%"]    = (p.compPct || 0) + "%";
+        stats["Pass Yds"] = Number(p.passYds || 0).toLocaleString();
+        stats["Pass TD"]  = p.passTDs || 0;
+        stats["Rush Yds"] = Number(p.rushYds || 0).toLocaleString();
+        stats["Rush TD"]  = p.rushTDs || 0;
+    } else if (p.pos === "RB" || p.pos === "FB") {
+        stats["Rush Att"] = p.rushAtt || 0;
+        stats["Rush Yds"] = Number(p.rushYds || 0).toLocaleString();
+        stats["Rush TD"]  = p.rushTDs || 0;
+        stats["Rec"]      = p.recRec || 0;
+        stats["Rec Yds"]  = Number(p.recYds || 0).toLocaleString();
+        stats["Rec TD"]   = p.recTDs || 0;
+    } else {
+        const ypr = p.recRec > 0 ? (p.recYds / p.recRec).toFixed(1) : "0.0";
+        stats["Rec"]     = p.recRec || 0;
+        stats["Rec Yds"] = Number(p.recYds || 0).toLocaleString();
+        stats["Rec TD"]  = p.recTDs || 0;
+        stats["YPR"]     = ypr;
+    }
+
+    return {
+        name:      p.name,
+        pos:       p.pos === "FB" ? "RB" : p.pos,
+        team:      p.team,
+        rawPts:    +rawPts,
+        recSeason: p.recRec || 0,
+        g:         p.games || 1,
+        stats,
+    };
+}
+
 /* rawPts is at half-PPR (0.5/rec). To convert:
    full PPR  → add recSeason × 0.5
    no PPR    → subtract recSeason × 0.5                          */
@@ -141,8 +189,10 @@ const TOP10_PROJ = [
 ];
 
 /* ── State ─────────────────────────────────────────────────── */
-let currentPPR = 1;     // default: full PPR
-let currentPos = "ALL";
+let currentPPR    = 1;      // default: full PPR
+let currentPos    = "ALL";
+let currentSeason = "2026";
+let lastPosTab    = { last: "QB", proj: "QB" };
 
 /* ── Ranking renderer ───────────────────────────────────────── */
 const POS_COLOR = { QB:"qb", RB:"rb", WR:"wr", TE:"te" };
@@ -151,7 +201,7 @@ function renderRankings() {
     const body = document.getElementById("rankings-all-body");
     if (!body) return;
 
-    let list = PLAYERS.filter(p => currentPos === "ALL" || p.pos === currentPos);
+    let list = players.filter(p => currentPos === "ALL" || p.pos === currentPos);
 
     // Compute adjusted fppg and sort
     list = list
@@ -184,6 +234,31 @@ function updateScoringLabel() {
     const labels = { 1:"Full PPR · by Fantasy Pts/Game", 0.5:"Half PPR · by Fantasy Pts/Game", 0:"No PPR · by Fantasy Pts/Game" };
     const el = document.getElementById("scoring-label");
     if (el) el.textContent = labels[currentPPR] ?? "";
+    const title = document.getElementById("rankings-title");
+    if (title) title.textContent = `${currentSeason} Season Rankings`;
+}
+
+/* ── Weekly list with position filter ─────────────────────── */
+function renderWeeklyByPos(sourceList, containerId, pos) {
+    const filtered = sourceList.filter(p => p.pos === pos).slice(0, 10);
+    renderWeeklyList(filtered, containerId);
+}
+
+function initWeeklyPosTabs() {
+    document.querySelectorAll(".weekly-pos-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const listKey = btn.dataset.list;   // "last" or "proj"
+            const pos     = btn.dataset.pos;
+            // Update active state for this group only
+            document.querySelectorAll(`.weekly-pos-btn[data-list="${listKey}"]`)
+                .forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            lastPosTab[listKey] = pos;
+            const containerId = listKey === "last" ? "top10-last" : "top10-proj";
+            const sourceList  = listKey === "last" ? TOP10_LAST : TOP10_PROJ;
+            renderWeeklyByPos(sourceList, containerId, pos);
+        });
+    });
 }
 
 /* ── Weekly list renderer ───────────────────────────────────── */
@@ -219,6 +294,32 @@ function toggleDetail(id) {
 
 /* ── Controls ───────────────────────────────────────────────── */
 function initRankControls() {
+    // Season dropdown
+    document.getElementById("season-select")?.addEventListener("change", async e => {
+        currentSeason = e.target.value;
+        if (currentSeason === "2025") {
+            players = PLAYERS;
+        } else {
+            // Try to load 2026 API data
+            try {
+                const res = await fetch("/api/player-stats");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        const KEEP = new Set(["QB","RB","WR","TE","FB"]);
+                        const mapped = data
+                            .filter(p => KEEP.has(p.pos) && (p.totalYds > 0 || p.passTDs > 0))
+                            .map(apiPlayerToFantasy);
+                        if (mapped.length > 0) { players = mapped; }
+                        else players = PLAYERS;
+                    } else players = PLAYERS;
+                } else players = PLAYERS;
+            } catch (_) { players = PLAYERS; }
+        }
+        updateScoringLabel();
+        renderRankings();
+    });
+
     // PPR dropdown
     document.getElementById("ppr-select")?.addEventListener("change", e => {
         currentPPR = parseFloat(e.target.value);
@@ -278,15 +379,33 @@ function initConnectButtons() {
 }
 
 /* ── Init ───────────────────────────────────────────────────── */
-function init() {
+async function init() {
     initPageTabs();
     initPlatformTabs();
     initConnectButtons();
     initRankControls();
+    initWeeklyPosTabs();
     updateScoringLabel();
+
+    // Try to load 2026 API data; fall back to hardcoded PLAYERS
+    try {
+        const res = await fetch("/api/player-stats");
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                const KEEP = new Set(["QB","RB","WR","TE","FB"]);
+                const mapped = data
+                    .filter(p => KEEP.has(p.pos) && (p.totalYds > 0 || p.passTDs > 0))
+                    .map(apiPlayerToFantasy);
+                if (mapped.length > 0) players = mapped;
+            }
+        }
+    } catch (_) { /* use PLAYERS fallback */ }
+
     renderRankings();
-    renderWeeklyList(TOP10_LAST, "top10-last");
-    renderWeeklyList(TOP10_PROJ, "top10-proj");
+    // Render weekly lists filtered to default position (QB)
+    renderWeeklyByPos(TOP10_LAST, "top10-last", "QB");
+    renderWeeklyByPos(TOP10_PROJ, "top10-proj", "QB");
 }
 
 document.addEventListener("DOMContentLoaded", init);

@@ -7,7 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
     <title>NFL Stats — Mid Stats</title>
     <link rel="stylesheet" href="shared.css?v=3">
-    <link rel="stylesheet" href="stats.css?v=3">
+    <link rel="stylesheet" href="stats.css?v=5">
 </head>
 <body>
 
@@ -40,6 +40,16 @@
 
     <main>
 
+        <!-- Season selector -->
+        <div class="season-bar">
+            <span class="season-bar-label">Season</span>
+            <select id="season-select" class="stats-select">
+                <option value="2026">2026 Season (Live)</option>
+                <option value="2025">2025 Season</option>
+            </select>
+            <span id="season-note" class="season-note"></span>
+        </div>
+
         <!-- Top-level tabs: Players / Teams -->
         <div class="page-tabs">
             <button class="page-tab active" data-panel="panel-players">Player Stats</button>
@@ -60,8 +70,8 @@
                     <div class="control-group">
                         <label class="control-label">Position</label>
                         <select id="pos-select" class="stats-select">
-                            <option value="QB">QB</option>
-                            <option value="RB" selected>RB</option>
+                            <option value="QB" selected>QB</option>
+                            <option value="RB">RB</option>
                             <option value="WR">WR</option>
                             <option value="TE">TE</option>
                         </select>
@@ -75,8 +85,13 @@
 
             <!-- Player Charts -->
             <div id="sub-pcharts" class="sub-panel hidden">
-                <p class="section-note">Top Running Backs — 2025 Season</p>
-                <div id="rb-charts"></div>
+                <div class="chart-pos-tabs">
+                    <button class="chart-pos-btn active" data-pos="QB">QB</button>
+                    <button class="chart-pos-btn" data-pos="RB">RB</button>
+                    <button class="chart-pos-btn" data-pos="WR">WR</button>
+                    <button class="chart-pos-btn" data-pos="TE">TE</button>
+                </div>
+                <div id="player-charts-area"></div>
             </div>
 
         </div>
@@ -127,6 +142,6 @@
 
     </main>
 
-    <script src="stats.js?v=3" defer></script>
+    <script src="stats.js?v=5" defer></script>
 </body>
 </html>

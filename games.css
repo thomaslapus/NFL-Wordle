@@ -59,23 +59,31 @@ main {
     border-color: rgba(100, 170, 255, 0.38);
 }
 
-.cal-week {
+.cal-week,
+.cal-week-type {
     font-size: 0.55rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-dim);
+    color: rgba(255,255,255,0.55);
 }
 
-.cal-date {
+.cal-week-type.pre  { color: rgba(180,220,255,0.65); }
+.cal-week-type.post { color: rgba(255,200,80,0.75); }
+.cal-week-type.reg  { color: rgba(180,220,255,0.65); }
+
+.cal-date,
+.cal-day-label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--text);
+    color: #e8f2ff;
     white-space: nowrap;
 }
 
-.cal-day.today .cal-date { color: var(--accent-2); }
-.cal-day.today .cal-week { color: var(--accent-2); opacity: 0.7; }
+.cal-day.today .cal-date,
+.cal-day.today .cal-day-label  { color: var(--accent-2); }
+.cal-day.today .cal-week,
+.cal-day.today .cal-week-type  { color: var(--accent-2); opacity: 0.7; }
 
 .cal-sep {
     flex-shrink: 0;

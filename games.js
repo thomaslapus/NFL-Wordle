@@ -1,10 +1,18 @@
 /* ============================================================
-   Games page — schedule data and rendering
+   Games page — schedule calendar + live scores from /api/games
    ============================================================ */
 
-const TODAY = "2026-08-13";
+// YYYYMMDD string for today — matches what the server uses
+function todayDateStr() {
+    const d = new Date();
+    return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+}
+const TODAY = todayDateStr();
+
+// ESPN CDN team logos
 const ESPN_LOGO = abbr => `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`;
 
+// Static team name + stadium lookup (used to fill gaps when API omits them)
 const T = {
     ARI:["Arizona Cardinals",     "State Farm Stadium, Glendale AZ"],
     ATL:["Atlanta Falcons",        "Mercedes-Benz Stadium, Atlanta GA"],
@@ -38,598 +46,242 @@ const T = {
     TB: ["Tampa Bay Buccaneers",   "Raymond James Stadium, Tampa FL"],
     TEN:["Tennessee Titans",       "Nissan Stadium, Nashville TN"],
     WAS:["Washington Commanders",  "Northwest Stadium, Landover MD"],
-    TBD:["TBD",                    "TBD"],
+    TBD:["TBD", "TBD"],
 };
 
-function g(away, awayRec, home, homeRec, kickoff, channel, status, awayScore, homeScore) {
-    return { away, awayRec, home, homeRec,
-             kickoff, channel,
-             stadium: T[home]?.[1] ?? "TBD",
-             status,
-             awayScore: awayScore ?? null,
-             homeScore: homeScore ?? null };
-}
-
-// ── Full schedule ──────────────────────────────────────────────────────────
-const SCHEDULE = [
-    // Preseason — Hall of Fame
-    {
-        date:"2026-07-30", label:"Thu Jul 30",
-        weekType:"Preseason", weekLabel:"HOF",
-        games:[ g("HOU","0-0","CHI","0-0","8:00 PM ET","NBC","final",17,24) ]
-    },
-    // Preseason Wk 1
-    {
-        date:"2026-08-06", label:"Thu Aug 6",
-        weekType:"Preseason", weekLabel:"Wk 1",
-        games:[
-            g("MIA","0-0","BUF","0-0","7:00 PM ET","NFL Net.","final",10,21),
-            g("PIT","0-0","BAL","0-0","7:30 PM ET","ESPN","final",14,24),
-            g("CAR","0-0","DET","0-0","7:30 PM ET","NFL Net.","final",7,20),
-        ]
-    },
-    {
-        date:"2026-08-07", label:"Fri Aug 7",
-        weekType:"Preseason", weekLabel:"Wk 1",
-        games:[
-            g("NYG","0-0","PHI","0-0","7:30 PM ET","Fox","final",10,17),
-            g("IND","0-0","CIN","0-0","7:00 PM ET","CBS","final",21,14),
-        ]
-    },
-    {
-        date:"2026-08-08", label:"Sat Aug 8",
-        weekType:"Preseason", weekLabel:"Wk 1",
-        games:[
-            g("TEN","0-0","KC","0-0","1:00 PM ET","NFL Net.","final",7,28),
-            g("DEN","0-0","LAR","0-0","4:00 PM ET","ESPN","final",17,24),
-            g("NO","0-0","ATL","0-0","4:00 PM ET","Fox","final",10,27),
-            g("ARI","0-0","LAC","0-0","4:00 PM ET","CBS","final",14,17),
-            g("WAS","0-0","MIN","0-0","7:00 PM ET","NFL Net.","final",13,20),
-            g("CLE","0-0","SF","0-0","7:00 PM ET","ESPN","final",10,21),
-        ]
-    },
-    {
-        date:"2026-08-09", label:"Sat Aug 9",
-        weekType:"Preseason", weekLabel:"Wk 1",
-        games:[
-            g("TB","0-0","GB","0-0","1:00 PM ET","Fox","final",17,24),
-            g("DAL","0-0","HOU","0-0","4:00 PM ET","CBS","final",14,20),
-            g("JAX","0-0","NE","0-0","7:00 PM ET","NFL Net.","final",21,10),
-        ]
-    },
-    {
-        date:"2026-08-10", label:"Mon Aug 10",
-        weekType:"Preseason", weekLabel:"Wk 1",
-        games:[
-            g("LV","0-0","SEA","0-0","8:00 PM ET","ESPN","final",7,24),
-            g("NYJ","0-0","CHI","1-0","7:00 PM ET","NFL Net.","final",14,10),
-        ]
-    },
-    // Preseason Wk 2 — TODAY Aug 13
-    {
-        date:"2026-08-13", label:"Thu Aug 13",
-        weekType:"Preseason", weekLabel:"Wk 2",
-        games:[
-            g("GB","0-1","MIN","1-0","1:00 PM ET","NFL Net.","final",14,27),
-            g("TB","0-1","WAS","0-1","4:30 PM ET","Fox","final",20,17),
-            g("DAL","0-1","MIA","0-1","8:20 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-14", label:"Fri Aug 14",
-        weekType:"Preseason", weekLabel:"Wk 2",
-        games:[
-            g("JAX","0-1","ATL","1-0","7:00 PM ET","NFL Net.","upcoming",null,null),
-            g("CIN","0-1","PIT","0-1","7:30 PM ET","ESPN","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-15", label:"Sat Aug 15",
-        weekType:"Preseason", weekLabel:"Wk 2",
-        games:[
-            g("BAL","1-0","NYJ","1-0","1:00 PM ET","Fox","upcoming",null,null),
-            g("DET","1-0","NYG","0-1","1:00 PM ET","CBS","upcoming",null,null),
-            g("BUF","1-0","ARI","0-1","4:00 PM ET","ESPN","upcoming",null,null),
-            g("KC","1-0","DEN","0-1","4:00 PM ET","Fox","upcoming",null,null),
-            g("LAC","1-0","CLE","0-1","4:00 PM ET","CBS","upcoming",null,null),
-            g("SF","1-0","NO","0-1","8:00 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-17", label:"Mon Aug 17",
-        weekType:"Preseason", weekLabel:"Wk 2",
-        games:[
-            g("LV","0-1","LAR","1-0","8:00 PM ET","ESPN","upcoming",null,null),
-        ]
-    },
-    // Preseason Wk 3
-    {
-        date:"2026-08-20", label:"Thu Aug 20",
-        weekType:"Preseason", weekLabel:"Wk 3",
-        games:[
-            g("PHI","1-0","NE","1-0","7:30 PM ET","ESPN","upcoming",null,null),
-            g("CHI","1-1","CAR","0-1","7:30 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-21", label:"Fri Aug 21",
-        weekType:"Preseason", weekLabel:"Wk 3",
-        games:[
-            g("CIN","0-2","IND","1-0","7:00 PM ET","CBS","upcoming",null,null),
-            g("NO","0-2","TEN","0-1","7:30 PM ET","NFL Net.","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-22", label:"Sat Aug 22",
-        weekType:"Preseason", weekLabel:"Wk 3",
-        games:[
-            g("SEA","1-0","GB","1-1","4:00 PM ET","Fox","upcoming",null,null),
-            g("TB","1-1","HOU","1-0","4:00 PM ET","CBS","upcoming",null,null),
-            g("DAL","0-2","LAR","1-0","4:00 PM ET","ESPN","upcoming",null,null),
-            g("MIN","2-0","PIT","0-2","7:00 PM ET","NBC","upcoming",null,null),
-            g("SF","1-0","KC","1-0","7:30 PM ET","NFL Net.","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-24", label:"Mon Aug 24",
-        weekType:"Preseason", weekLabel:"Wk 3",
-        games:[
-            g("NYG","0-2","MIA","0-2","8:00 PM ET","ESPN","upcoming",null,null),
-        ]
-    },
-    // Preseason Wk 4
-    {
-        date:"2026-08-27", label:"Thu Aug 27",
-        weekType:"Preseason", weekLabel:"Wk 4",
-        games:[
-            g("NE","1-0","NYG","0-3","7:00 PM ET","NFL Net.","upcoming",null,null),
-            g("TEN","0-2","IND","1-1","7:30 PM ET","CBS","upcoming",null,null),
-            g("PIT","0-2","DET","1-1","7:30 PM ET","ESPN","upcoming",null,null),
-            g("ARI","0-2","LAR","1-0","10:00 PM ET","NFL Net.","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-08-28", label:"Fri Aug 28",
-        weekType:"Preseason", weekLabel:"Wk 4",
-        games:[
-            g("DEN","0-2","DAL","0-3","8:00 PM ET","Fox","upcoming",null,null),
-            g("CHI","1-1","MIN","2-1","8:00 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    // ── Regular Season ────────────────────────────────────────────────────────
-    {
-        date:"2026-09-03", label:"Thu Sep 3",
-        weekType:"Regular Season", weekLabel:"Wk 1",
-        games:[ g("KC","0-0","PHI","0-0","8:20 PM ET","NBC","upcoming",null,null) ]
-    },
-    {
-        date:"2026-09-06", label:"Sun Sep 6",
-        weekType:"Regular Season", weekLabel:"Wk 1",
-        games:[
-            g("BUF","0-0","MIA","0-0","1:00 PM ET","CBS","upcoming",null,null),
-            g("DET","0-0","MIN","0-0","1:00 PM ET","Fox","upcoming",null,null),
-            g("BAL","0-0","PIT","0-0","1:00 PM ET","CBS","upcoming",null,null),
-            g("ATL","0-0","CAR","0-0","1:00 PM ET","Fox","upcoming",null,null),
-            g("HOU","0-0","IND","0-0","1:00 PM ET","CBS","upcoming",null,null),
-            g("NYJ","0-0","NE","0-0","1:00 PM ET","CBS","upcoming",null,null),
-            g("DAL","0-0","WAS","0-0","4:25 PM ET","Fox","upcoming",null,null),
-            g("SF","0-0","LAR","0-0","4:25 PM ET","Fox","upcoming",null,null),
-            g("SEA","0-0","DEN","0-0","4:25 PM ET","CBS","upcoming",null,null),
-            g("GB","0-0","CHI","0-0","4:25 PM ET","Fox","upcoming",null,null),
-            g("LAC","0-0","LV","0-0","8:20 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-09-07", label:"Mon Sep 7",
-        weekType:"Regular Season", weekLabel:"Wk 1",
-        games:[
-            g("CIN","0-0","CLE","0-0","7:30 PM ET","ESPN","upcoming",null,null),
-            g("NO","0-0","TB","0-0","8:15 PM ET","ABC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-09-10", label:"Thu Sep 10",
-        weekType:"Regular Season", weekLabel:"Wk 2",
-        games:[ g("KC","1-0","BUF","1-0","8:20 PM ET","NBC","upcoming",null,null) ]
-    },
-    {
-        date:"2026-09-13", label:"Sun Sep 13",
-        weekType:"Regular Season", weekLabel:"Wk 2",
-        games:[
-            g("PHI","1-0","DAL","0-1","1:00 PM ET","Fox","upcoming",null,null),
-            g("DET","1-0","GB","0-1","1:00 PM ET","Fox","upcoming",null,null),
-            g("BAL","1-0","DEN","0-1","4:25 PM ET","CBS","upcoming",null,null),
-            g("SF","1-0","SEA","0-1","4:25 PM ET","Fox","upcoming",null,null),
-            g("MIN","1-0","CHI","0-1","1:00 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-09-17", label:"Thu Sep 17",
-        weekType:"Regular Season", weekLabel:"Wk 3",
-        games:[ g("ATL","1-1","NO","1-1","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-09-20", label:"Sun Sep 20",
-        weekType:"Regular Season", weekLabel:"Wk 3",
-        games:[
-            g("KC","2-0","LAC","1-1","4:25 PM ET","CBS","upcoming",null,null),
-            g("PHI","2-0","NE","0-2","1:00 PM ET","CBS","upcoming",null,null),
-            g("DET","2-0","WAS","0-2","1:00 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-09-24", label:"Thu Sep 24",
-        weekType:"Regular Season", weekLabel:"Wk 4",
-        games:[ g("TB","2-1","ATL","2-1","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-09-27", label:"Sun Sep 27",
-        weekType:"Regular Season", weekLabel:"Wk 4",
-        games:[
-            g("PHI","3-0","WAS","0-3","4:25 PM ET","Fox","upcoming",null,null),
-            g("BAL","3-0","BUF","2-1","4:25 PM ET","CBS","upcoming",null,null),
-            g("SF","2-1","LAR","2-1","4:25 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-10-01", label:"Thu Oct 1",
-        weekType:"Regular Season", weekLabel:"Wk 5",
-        games:[ g("DET","3-1","MIN","3-1","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-10-04", label:"Sun Oct 4",
-        weekType:"Regular Season", weekLabel:"Wk 5",
-        games:[
-            g("KC","4-0","BUF","2-2","4:25 PM ET","CBS","upcoming",null,null),
-            g("GB","2-2","SEA","3-1","1:00 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-10-08", label:"Thu Oct 8",
-        weekType:"Regular Season", weekLabel:"Wk 6",
-        games:[ g("BAL","4-1","DET","4-1","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-10-11", label:"Sun Oct 11",
-        weekType:"Regular Season", weekLabel:"Wk 6",
-        games:[
-            g("PHI","5-0","LAC","3-2","4:25 PM ET","Fox","upcoming",null,null),
-            g("MIN","4-1","SF","3-2","4:25 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-10-15", label:"Thu Oct 15",
-        weekType:"Regular Season", weekLabel:"Wk 7",
-        games:[ g("GB","3-3","SF","4-2","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-10-18", label:"Sun Oct 18",
-        weekType:"Regular Season", weekLabel:"Wk 7",
-        games:[
-            g("MIN","5-1","DET","4-2","1:00 PM ET","Fox","upcoming",null,null),
-            g("KC","5-1","PHI","5-1","4:25 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-10-22", label:"Thu Oct 22",
-        weekType:"Regular Season", weekLabel:"Wk 8",
-        games:[ g("LAC","4-3","KC","5-1","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-10-25", label:"Sun Oct 25",
-        weekType:"Regular Season", weekLabel:"Wk 8",
-        games:[
-            g("BAL","6-1","PHI","6-1","4:25 PM ET","CBS","upcoming",null,null),
-            g("DET","5-2","GB","4-3","1:00 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-10-29", label:"Thu Oct 29",
-        weekType:"Regular Season", weekLabel:"Wk 9",
-        games:[ g("BUF","4-4","MIA","4-4","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-11-01", label:"Sun Nov 1",
-        weekType:"Regular Season", weekLabel:"Wk 9",
-        games:[
-            g("DET","6-2","GB","5-3","1:00 PM ET","Fox","upcoming",null,null),
-            g("BAL","7-1","KC","6-2","4:25 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-11-05", label:"Thu Nov 5",
-        weekType:"Regular Season", weekLabel:"Wk 10",
-        games:[ g("PHI","7-1","DAL","4-5","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-11-08", label:"Sun Nov 8",
-        weekType:"Regular Season", weekLabel:"Wk 10",
-        games:[
-            g("KC","7-2","DEN","4-5","4:25 PM ET","CBS","upcoming",null,null),
-            g("MIN","7-2","GB","5-4","1:00 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-11-12", label:"Thu Nov 12",
-        weekType:"Regular Season", weekLabel:"Wk 11",
-        games:[ g("MIN","8-2","GB","6-4","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-11-15", label:"Sun Nov 15",
-        weekType:"Regular Season", weekLabel:"Wk 11",
-        games:[
-            g("BAL","9-1","BUF","7-3","4:25 PM ET","CBS","upcoming",null,null),
-            g("PHI","9-1","LAC","6-4","4:25 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-11-19", label:"Thu Nov 19",
-        weekType:"Regular Season", weekLabel:"Wk 12",
-        games:[ g("PHI","9-1","TB","7-3","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-11-22", label:"Sun Nov 22",
-        weekType:"Regular Season", weekLabel:"Wk 12",
-        games:[
-            g("DET","9-2","CHI","6-5","1:00 PM ET","Fox","upcoming",null,null),
-            g("KC","9-2","LV","5-6","4:25 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-11-26", label:"Thu Nov 26",
-        weekType:"Regular Season", weekLabel:"Wk 13",
-        games:[
-            g("GB","8-4","DET","9-3","12:30 PM ET","Fox","upcoming",null,null),
-            g("PHI","9-1","NYG","4-8","4:30 PM ET","CBS","upcoming",null,null),
-            g("MIN","9-3","DAL","5-8","8:20 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-11-29", label:"Sun Nov 29",
-        weekType:"Regular Season", weekLabel:"Wk 13",
-        games:[
-            g("KC","10-2","MIN","9-3","4:25 PM ET","CBS","upcoming",null,null),
-            g("BAL","10-2","CIN","7-5","1:00 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-12-03", label:"Thu Dec 3",
-        weekType:"Regular Season", weekLabel:"Wk 14",
-        games:[ g("BUF","9-3","PHI","10-2","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-12-06", label:"Sun Dec 6",
-        weekType:"Regular Season", weekLabel:"Wk 14",
-        games:[
-            g("BAL","11-2","CIN","7-6","1:00 PM ET","CBS","upcoming",null,null),
-            g("DET","11-3","MIN","10-4","4:25 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-12-10", label:"Thu Dec 10",
-        weekType:"Regular Season", weekLabel:"Wk 15",
-        games:[ g("LAC","8-5","KC","11-2","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-12-13", label:"Sun Dec 13",
-        weekType:"Regular Season", weekLabel:"Wk 15",
-        games:[
-            g("PHI","11-3","WAS","9-5","4:25 PM ET","Fox","upcoming",null,null),
-            g("BAL","12-2","BUF","10-4","4:25 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-12-17", label:"Thu Dec 17",
-        weekType:"Regular Season", weekLabel:"Wk 16",
-        games:[ g("DET","12-3","GB","9-7","8:20 PM ET","Prime Video","upcoming",null,null) ]
-    },
-    {
-        date:"2026-12-20", label:"Sun Dec 20",
-        weekType:"Regular Season", weekLabel:"Wk 16",
-        games:[
-            g("KC","12-3","BAL","12-2","4:25 PM ET","CBS","upcoming",null,null),
-            g("PHI","11-3","DAL","8-8","4:25 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-12-26", label:"Sat Dec 26",
-        weekType:"Regular Season", weekLabel:"Wk 17",
-        games:[
-            g("DET","12-3","CHI","6-10","1:00 PM ET","Fox","upcoming",null,null),
-            g("BUF","11-4","MIA","7-8","4:30 PM ET","CBS","upcoming",null,null),
-            g("GB","10-7","MIN","13-3","8:20 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2026-12-27", label:"Sun Dec 27",
-        weekType:"Regular Season", weekLabel:"Wk 17",
-        games:[
-            g("KC","13-3","LAC","9-7","1:00 PM ET","CBS","upcoming",null,null),
-            g("BAL","13-3","CIN","9-8","1:00 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2027-01-03", label:"Sun Jan 3",
-        weekType:"Regular Season", weekLabel:"Wk 18",
-        games:[
-            g("KC","14-2","DEN","7-10","1:00 PM ET","CBS","upcoming",null,null),
-            g("PHI","13-3","NYG","6-10","1:00 PM ET","Fox","upcoming",null,null),
-            g("DET","14-2","GB","10-8","1:00 PM ET","Fox","upcoming",null,null),
-            g("BAL","14-2","CLE","5-12","1:00 PM ET","CBS","upcoming",null,null),
-        ]
-    },
+// ── Schedule dates — calendar structure only, no game data ────────────────────
+// Game matchup data comes from the server via /api/games?date=YYYYMMDD.
+const SCHEDULE_DATES = [
+    // Preseason
+    { date:"20260730", label:"Thu Jul 30",   weekType:"Preseason", weekLabel:"HOF" },
+    { date:"20260806", label:"Thu Aug 6",    weekType:"Preseason", weekLabel:"Wk 1" },
+    { date:"20260807", label:"Fri Aug 7",    weekType:"Preseason", weekLabel:"Wk 1" },
+    { date:"20260808", label:"Sat Aug 8",    weekType:"Preseason", weekLabel:"Wk 1" },
+    { date:"20260809", label:"Sat Aug 9",    weekType:"Preseason", weekLabel:"Wk 1" },
+    { date:"20260810", label:"Sun Aug 10",   weekType:"Preseason", weekLabel:"Wk 1" },
+    { date:"20260813", label:"Thu Aug 13",   weekType:"Preseason", weekLabel:"Wk 2" },
+    { date:"20260814", label:"Fri Aug 14",   weekType:"Preseason", weekLabel:"Wk 2" },
+    { date:"20260815", label:"Sat Aug 15",   weekType:"Preseason", weekLabel:"Wk 2" },
+    { date:"20260817", label:"Mon Aug 17",   weekType:"Preseason", weekLabel:"Wk 2" },
+    { date:"20260820", label:"Thu Aug 20",   weekType:"Preseason", weekLabel:"Wk 3" },
+    { date:"20260821", label:"Fri Aug 21",   weekType:"Preseason", weekLabel:"Wk 3" },
+    { date:"20260822", label:"Sat Aug 22",   weekType:"Preseason", weekLabel:"Wk 3" },
+    { date:"20260824", label:"Mon Aug 24",   weekType:"Preseason", weekLabel:"Wk 3" },
+    { date:"20260827", label:"Thu Aug 27",   weekType:"Preseason", weekLabel:"Wk 4" },
+    { date:"20260828", label:"Fri Aug 28",   weekType:"Preseason", weekLabel:"Wk 4" },
+    // Regular Season
+    { date:"20260903", label:"Thu Sep 3",    weekType:"Regular",   weekLabel:"Wk 1" },
+    { date:"20260906", label:"Sun Sep 6",    weekType:"Regular",   weekLabel:"Wk 1" },
+    { date:"20260907", label:"Mon Sep 7",    weekType:"Regular",   weekLabel:"Wk 1" },
+    { date:"20260910", label:"Thu Sep 10",   weekType:"Regular",   weekLabel:"Wk 2" },
+    { date:"20260913", label:"Sun Sep 13",   weekType:"Regular",   weekLabel:"Wk 2" },
+    { date:"20260914", label:"Mon Sep 14",   weekType:"Regular",   weekLabel:"Wk 2" },
+    { date:"20260917", label:"Thu Sep 17",   weekType:"Regular",   weekLabel:"Wk 3" },
+    { date:"20260920", label:"Sun Sep 20",   weekType:"Regular",   weekLabel:"Wk 3" },
+    { date:"20260921", label:"Mon Sep 21",   weekType:"Regular",   weekLabel:"Wk 3" },
+    { date:"20260924", label:"Thu Sep 24",   weekType:"Regular",   weekLabel:"Wk 4" },
+    { date:"20260927", label:"Sun Sep 27",   weekType:"Regular",   weekLabel:"Wk 4" },
+    { date:"20260928", label:"Mon Sep 28",   weekType:"Regular",   weekLabel:"Wk 4" },
+    { date:"20261001", label:"Thu Oct 1",    weekType:"Regular",   weekLabel:"Wk 5" },
+    { date:"20261004", label:"Sun Oct 4",    weekType:"Regular",   weekLabel:"Wk 5" },
+    { date:"20261005", label:"Mon Oct 5",    weekType:"Regular",   weekLabel:"Wk 5" },
+    { date:"20261008", label:"Thu Oct 8",    weekType:"Regular",   weekLabel:"Wk 6" },
+    { date:"20261011", label:"Sun Oct 11",   weekType:"Regular",   weekLabel:"Wk 6" },
+    { date:"20261012", label:"Mon Oct 12",   weekType:"Regular",   weekLabel:"Wk 6" },
+    { date:"20261015", label:"Thu Oct 15",   weekType:"Regular",   weekLabel:"Wk 7" },
+    { date:"20261018", label:"Sun Oct 18",   weekType:"Regular",   weekLabel:"Wk 7" },
+    { date:"20261019", label:"Mon Oct 19",   weekType:"Regular",   weekLabel:"Wk 7" },
+    { date:"20261022", label:"Thu Oct 22",   weekType:"Regular",   weekLabel:"Wk 8" },
+    { date:"20261025", label:"Sun Oct 25",   weekType:"Regular",   weekLabel:"Wk 8" },
+    { date:"20261026", label:"Mon Oct 26",   weekType:"Regular",   weekLabel:"Wk 8" },
+    { date:"20261029", label:"Thu Oct 29",   weekType:"Regular",   weekLabel:"Wk 9" },
+    { date:"20261101", label:"Sun Nov 1",    weekType:"Regular",   weekLabel:"Wk 9" },
+    { date:"20261102", label:"Mon Nov 2",    weekType:"Regular",   weekLabel:"Wk 9" },
+    { date:"20261105", label:"Thu Nov 5",    weekType:"Regular",   weekLabel:"Wk 10" },
+    { date:"20261108", label:"Sun Nov 8",    weekType:"Regular",   weekLabel:"Wk 10" },
+    { date:"20261109", label:"Mon Nov 9",    weekType:"Regular",   weekLabel:"Wk 10" },
+    { date:"20261112", label:"Thu Nov 12",   weekType:"Regular",   weekLabel:"Wk 11" },
+    { date:"20261115", label:"Sun Nov 15",   weekType:"Regular",   weekLabel:"Wk 11" },
+    { date:"20261116", label:"Mon Nov 16",   weekType:"Regular",   weekLabel:"Wk 11" },
+    { date:"20261119", label:"Thu Nov 19",   weekType:"Regular",   weekLabel:"Wk 12" },
+    { date:"20261122", label:"Sun Nov 22",   weekType:"Regular",   weekLabel:"Wk 12" },
+    { date:"20261123", label:"Mon Nov 23",   weekType:"Regular",   weekLabel:"Wk 12" },
+    { date:"20261126", label:"Thu Nov 26",   weekType:"Regular",   weekLabel:"Wk 13" },
+    { date:"20261129", label:"Sun Nov 29",   weekType:"Regular",   weekLabel:"Wk 13" },
+    { date:"20261130", label:"Mon Nov 30",   weekType:"Regular",   weekLabel:"Wk 13" },
+    { date:"20261203", label:"Thu Dec 3",    weekType:"Regular",   weekLabel:"Wk 14" },
+    { date:"20261206", label:"Sun Dec 6",    weekType:"Regular",   weekLabel:"Wk 14" },
+    { date:"20261207", label:"Mon Dec 7",    weekType:"Regular",   weekLabel:"Wk 14" },
+    { date:"20261210", label:"Thu Dec 10",   weekType:"Regular",   weekLabel:"Wk 15" },
+    { date:"20261213", label:"Sun Dec 13",   weekType:"Regular",   weekLabel:"Wk 15" },
+    { date:"20261214", label:"Mon Dec 14",   weekType:"Regular",   weekLabel:"Wk 15" },
+    { date:"20261217", label:"Thu Dec 17",   weekType:"Regular",   weekLabel:"Wk 16" },
+    { date:"20261220", label:"Sun Dec 20",   weekType:"Regular",   weekLabel:"Wk 16" },
+    { date:"20261221", label:"Mon Dec 21",   weekType:"Regular",   weekLabel:"Wk 16" },
+    { date:"20261226", label:"Sat Dec 26",   weekType:"Regular",   weekLabel:"Wk 17" },
+    { date:"20261227", label:"Sun Dec 27",   weekType:"Regular",   weekLabel:"Wk 17" },
+    { date:"20261228", label:"Mon Dec 28",   weekType:"Regular",   weekLabel:"Wk 17" },
+    { date:"20270103", label:"Sun Jan 3",    weekType:"Regular",   weekLabel:"Wk 18" },
+    { date:"20270104", label:"Mon Jan 4",    weekType:"Regular",   weekLabel:"Wk 18" },
     // Playoffs
-    {
-        date:"2027-01-17", label:"Sat Jan 17",
-        weekType:"Playoffs", weekLabel:"Wild Card",
-        games:[
-            g("TBD","0-0","TBD","0-0","1:30 PM ET","NBC","upcoming",null,null),
-            g("TBD","0-0","TBD","0-0","5:15 PM ET","Fox","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2027-01-18", label:"Sun Jan 18",
-        weekType:"Playoffs", weekLabel:"Wild Card",
-        games:[
-            g("TBD","0-0","TBD","0-0","1:00 PM ET","ESPN","upcoming",null,null),
-            g("TBD","0-0","TBD","0-0","4:30 PM ET","CBS","upcoming",null,null),
-            g("TBD","0-0","TBD","0-0","8:15 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2027-01-19", label:"Mon Jan 19",
-        weekType:"Playoffs", weekLabel:"Wild Card",
-        games:[ g("TBD","0-0","TBD","0-0","8:15 PM ET","ABC/ESPN","upcoming",null,null) ]
-    },
-    {
-        date:"2027-01-24", label:"Sat Jan 24",
-        weekType:"Playoffs", weekLabel:"Divisional",
-        games:[
-            g("TBD","0-0","TBD","0-0","4:30 PM ET","Fox","upcoming",null,null),
-            g("TBD","0-0","TBD","0-0","8:15 PM ET","NBC","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2027-01-25", label:"Sun Jan 25",
-        weekType:"Playoffs", weekLabel:"Divisional",
-        games:[
-            g("TBD","0-0","TBD","0-0","3:00 PM ET","ABC/ESPN","upcoming",null,null),
-            g("TBD","0-0","TBD","0-0","6:30 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2027-02-01", label:"Sun Feb 1",
-        weekType:"Playoffs", weekLabel:"Conf. Champ",
-        games:[
-            g("TBD","0-0","TBD","0-0","3:00 PM ET","Fox","upcoming",null,null),
-            g("TBD","0-0","TBD","0-0","6:30 PM ET","CBS","upcoming",null,null),
-        ]
-    },
-    {
-        date:"2027-02-07", label:"Super Bowl",
-        weekType:"Playoffs", weekLabel:"Super Bowl",
-        games:[ g("TBD","0-0","TBD","0-0","6:30 PM ET","TBD","upcoming",null,null) ]
-    },
+    { date:"20270117", label:"Sat Jan 17",   weekType:"Playoffs",  weekLabel:"Wild Card" },
+    { date:"20270118", label:"Sun Jan 18",   weekType:"Playoffs",  weekLabel:"Wild Card" },
+    { date:"20270119", label:"Mon Jan 19",   weekType:"Playoffs",  weekLabel:"Wild Card" },
+    { date:"20270124", label:"Sat Jan 24",   weekType:"Playoffs",  weekLabel:"Divisional" },
+    { date:"20270125", label:"Sun Jan 25",   weekType:"Playoffs",  weekLabel:"Divisional" },
+    { date:"20270201", label:"Sun Feb 1",    weekType:"Playoffs",  weekLabel:"Conf. Champ." },
+    { date:"20270207", label:"Sun Feb 7",    weekType:"Playoffs",  weekLabel:"Super Bowl" },
 ];
 
-// ── State ──────────────────────────────────────────────────────────────────
-let activeIdx = 0;
+// ── State ─────────────────────────────────────────────────────────────────────
+let activeIdx    = 0;
+let liveRefreshInterval = null;
 
-// ── Calendar ───────────────────────────────────────────────────────────────
+// ── Calendar ──────────────────────────────────────────────────────────────────
 function buildCalendar() {
     const track = document.getElementById("cal-track");
-    let prevType = null;
+    if (!track) return;
 
-    SCHEDULE.forEach((day, idx) => {
-        // Separator when week type changes
-        if (prevType && day.weekType !== prevType) {
-            const sep = document.createElement("div");
-            sep.className = "cal-sep";
-            track.appendChild(sep);
-        }
-        prevType = day.weekType;
-
+    SCHEDULE_DATES.forEach((day, i) => {
         const btn = document.createElement("button");
-        btn.className = "cal-day" + (day.date === TODAY ? " today" : "");
-        btn.dataset.idx = idx;
+        btn.className = "cal-day";
+        btn.dataset.idx = i;
+
+        const isPast   = day.date < TODAY;
+        const isToday  = day.date === TODAY;
+        const isFuture = day.date > TODAY;
+
+        if (isToday)  btn.classList.add("today");
+        if (isPast)   btn.classList.add("past");
+        if (isFuture) btn.classList.add("future");
+
+        // Week type badge color
+        const typeClass = day.weekType === "Preseason" ? "pre" :
+                          day.weekType === "Playoffs"  ? "post" : "reg";
+
         btn.innerHTML = `
-            <span class="cal-week">${day.weekLabel}</span>
-            <span class="cal-date">${day.label}</span>
+            <span class="cal-week-type ${typeClass}">${day.weekLabel}</span>
+            <span class="cal-day-label">${day.label}</span>
         `;
-        btn.addEventListener("click", () => showDay(idx));
+        btn.addEventListener("click", () => showDay(i));
         track.appendChild(btn);
     });
 }
 
-function showDay(idx) {
+// ── Show a day — fetch games from server, render ──────────────────────────────
+async function showDay(idx) {
     activeIdx = idx;
 
-    // Update active class on calendar
     document.querySelectorAll(".cal-day").forEach(el => {
         el.classList.toggle("active", +el.dataset.idx === idx);
     });
 
-    const day = SCHEDULE[idx];
+    const day = SCHEDULE_DATES[idx];
 
-    // Day header
     document.getElementById("day-label").textContent =
         `${day.weekType} ${day.weekLabel} — ${day.label}`;
     document.getElementById("day-badge").textContent =
-        day.date === TODAY ? "Today" :
-        day.date < TODAY  ? "Final" : "Upcoming";
+        day.date === TODAY ? "Today" : day.date < TODAY ? "Final" : "Upcoming";
 
-    // Game cards
     const grid = document.getElementById("games-grid");
-    if (!day.games || day.games.length === 0) {
-        grid.innerHTML = `<div class="no-games">No games scheduled.</div>`;
-        return;
+    grid.innerHTML = `<div class="games-loading">Loading games…</div>`;
+
+    // Stop any existing live-refresh loop
+    if (liveRefreshInterval) { clearInterval(liveRefreshInterval); liveRefreshInterval = null; }
+
+    await renderGamesForDate(day.date, grid);
+
+    // If viewing today, auto-refresh every 60 s (poller keeps server cache fresh)
+    if (day.date === TODAY) {
+        liveRefreshInterval = setInterval(() => renderGamesForDate(day.date, grid), 60_000);
     }
-    grid.innerHTML = day.games.map(renderCard).join("");
 }
 
-// ── Card rendering ─────────────────────────────────────────────────────────
+async function renderGamesForDate(dateStr, grid) {
+    try {
+        const res  = await fetch(`/api/games?date=${dateStr}`);
+        const data = await res.json();
+
+        if (!res.ok || data.status === "no-key") {
+            grid.innerHTML = `<div class="no-games">Game data unavailable — API key not configured.</div>`;
+            return;
+        }
+
+        const games = data.games ?? [];
+        if (games.length === 0) {
+            grid.innerHTML = `<div class="no-games">No games scheduled.</div>`;
+            return;
+        }
+
+        grid.innerHTML = games.map(renderCard).join("");
+    } catch (err) {
+        grid.innerHTML = `<div class="no-games">Failed to load game data.</div>`;
+        console.error("Games fetch error:", err);
+    }
+}
+
+// ── Card rendering ─────────────────────────────────────────────────────────────
 function renderCard(game) {
-    const { status } = game;
-    if (status === "final")    return renderFinal(game);
-    if (status === "live")     return renderLive(game);
+    if (game.status === "final")    return renderFinal(game);
+    if (game.status === "live")     return renderLive(game);
     return renderUpcoming(game);
 }
 
 function logoImg(abbr) {
-    if (abbr === "TBD") return `<div class="gc-logo" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.4rem">🏈</div>`;
+    if (!abbr || abbr === "TBD")
+        return `<div class="gc-logo" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.4rem">🏈</div>`;
     return `<img class="gc-logo" src="${ESPN_LOGO(abbr)}" alt="${abbr}" onerror="this.style.display='none'">`;
 }
 
 function renderUpcoming(game) {
-    const homeTeamName = T[game.home]?.[0] ?? game.home;
-    const awayTeamName = T[game.away]?.[0] ?? game.away;
+    const away = game.awayTeam ?? "TBD";
+    const home = game.homeTeam ?? "TBD";
+    const awayName = T[away]?.[0] ?? away;
+    const homeName = T[home]?.[0] ?? home;
+    const stadium  = T[home]?.[1] ?? "";
+    const channel  = game.channel ? ` · ${game.channel}` : "";
     return `
 <div class="game-card">
   <div class="gc-header">
-    <span>${game.kickoff} · ${game.channel}</span>
+    <span>${game.kickoff}${channel}</span>
     <span class="gc-status-badge upcoming">Upcoming</span>
   </div>
   <div class="gc-body">
     <div class="gc-teams">
       <div class="gc-team">
-        ${logoImg(game.away)}
-        <span class="gc-abbr">${game.away}</span>
-        <span class="gc-name">${awayTeamName}</span>
-        <span class="gc-record">${game.awayRec}</span>
+        ${logoImg(away)}
+        <span class="gc-abbr">${away}</span>
+        <span class="gc-name">${awayName}</span>
+        <span class="gc-record">${game.awayRecord || ""}</span>
       </div>
       <div class="gc-center">
         <span class="gc-vs">@</span>
       </div>
       <div class="gc-team">
-        ${logoImg(game.home)}
-        <span class="gc-abbr">${game.home}</span>
-        <span class="gc-name">${homeTeamName}</span>
-        <span class="gc-record">${game.homeRec}</span>
+        ${logoImg(home)}
+        <span class="gc-abbr">${home}</span>
+        <span class="gc-name">${homeName}</span>
+        <span class="gc-record">${game.homeRecord || ""}</span>
       </div>
     </div>
-    <div class="gc-footer">
-      <div class="gc-stadium">
-        <span class="gc-stadium-icon">🏟</span>
-        <span>${game.stadium}</span>
-      </div>
-      <div class="gc-win-pct">
-        <div class="gc-pct-bar">
-          <span class="pct-abbr">${game.away}</span>
-          <span class="pct-val">--%</span>
-        </div>
-        <div class="gc-pct-bar">
-          <span class="pct-abbr">${game.home}</span>
-          <span class="pct-val">--%</span>
-        </div>
-      </div>
-    </div>
+    ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span><span>${stadium}</span></div></div>` : ""}
   </div>
 </div>`;
 }
 
 function renderLive(game) {
-    const homeTeamName = T[game.home]?.[0] ?? game.home;
-    const awayTeamName = T[game.away]?.[0] ?? game.away;
+    const away = game.awayTeam ?? "TBD";
+    const home = game.homeTeam ?? "TBD";
+    const awayName = T[away]?.[0] ?? away;
+    const homeName = T[home]?.[0] ?? home;
+    const stadium  = T[home]?.[1] ?? "";
+    const scoreAway = game.awayScore ?? "-";
+    const scoreHome = game.homeScore ?? "-";
+    const qtr  = game.quarter ? `Q${game.quarter}` : "Live";
+    const clock = game.clock  ? ` · ${game.clock}` : "";
+    const poss  = game.possession && game.possession !== "TBD"
+        ? `<div class="gc-possession"><span class="poss-dot"></span><span>Ball: ${game.possession}</span></div>`
+        : "";
     return `
 <div class="game-card">
   <div class="gc-header">
@@ -639,106 +291,90 @@ function renderLive(game) {
   <div class="gc-body">
     <div class="gc-teams">
       <div class="gc-team">
-        ${logoImg(game.away)}
-        <span class="gc-abbr">${game.away}</span>
-        <span class="gc-name">${awayTeamName}</span>
+        ${logoImg(away)}
+        <span class="gc-abbr">${away}</span>
+        <span class="gc-name">${awayName}</span>
       </div>
       <div class="gc-center">
         <div class="gc-scores">
-          <span class="gc-score live">-</span>
+          <span class="gc-score live">${scoreAway}</span>
           <span class="gc-dash">–</span>
-          <span class="gc-score live">-</span>
+          <span class="gc-score live">${scoreHome}</span>
         </div>
-        <span class="gc-live-info">Q- · -:--</span>
-        <div class="gc-possession">
-          <span class="poss-dot"></span>
-          <span>Ball: -</span>
-        </div>
+        <span class="gc-live-info">${qtr}${clock}</span>
+        ${poss}
       </div>
       <div class="gc-team">
-        ${logoImg(game.home)}
-        <span class="gc-abbr">${game.home}</span>
-        <span class="gc-name">${homeTeamName}</span>
+        ${logoImg(home)}
+        <span class="gc-abbr">${home}</span>
+        <span class="gc-name">${homeName}</span>
       </div>
     </div>
-    <div class="gc-footer">
-      <div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${game.stadium}</div>
-    </div>
+    ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
   </div>
 </div>`;
 }
 
 function renderFinal(game) {
-    const homeTeamName = T[game.home]?.[0] ?? game.home;
-    const awayTeamName = T[game.away]?.[0] ?? game.away;
-    const homeWon = game.homeScore > game.awayScore;
-    const awayWon = game.awayScore > game.homeScore;
-
-    const homeTeamCls = homeWon ? "win-side" : (awayWon ? "loss-side" : "");
-    const awayTeamCls = awayWon ? "win-side" : (homeWon ? "loss-side" : "");
-    const homeScoreCls = homeWon ? "winner" : (awayWon ? "loser" : "");
-    const awayScoreCls = awayWon ? "winner" : (homeWon ? "loser" : "");
-
-    // Updated records (add 1 win or loss from preseason showing)
-    function updatedRec(rec, won) {
-        if (rec === "0-0" || rec === "TBD" || !rec.includes("-")) return rec;
-        let [w, l] = rec.split("-").map(Number);
-        if (won) w++; else l++;
-        return `${w}-${l}`;
-    }
-    const awayRecUpd = updatedRec(game.awayRec, awayWon);
-    const homeRecUpd = updatedRec(game.homeRec, homeWon);
+    const away = game.awayTeam ?? "TBD";
+    const home = game.homeTeam ?? "TBD";
+    const awayName = T[away]?.[0] ?? away;
+    const homeName = T[home]?.[0] ?? home;
+    const stadium  = T[home]?.[1] ?? "";
+    const channel  = game.channel || "";
+    const scoreAway = game.awayScore ?? 0;
+    const scoreHome = game.homeScore ?? 0;
+    const homeWon   = scoreHome > scoreAway;
+    const awayWon   = scoreAway > scoreHome;
 
     return `
 <div class="game-card">
   <div class="gc-header">
-    <span>${game.channel}</span>
+    <span>${channel}</span>
     <span class="gc-status-badge final">Final</span>
   </div>
   <div class="gc-body">
     <div class="gc-teams">
-      <div class="gc-team ${awayTeamCls}">
-        ${logoImg(game.away)}
-        <span class="gc-abbr">${game.away}</span>
-        <span class="gc-name">${awayTeamName}</span>
-        <span class="gc-record ${awayWon ? "winner" : ""}">${awayRecUpd}</span>
+      <div class="gc-team ${awayWon ? "win-side" : homeWon ? "loss-side" : ""}">
+        ${logoImg(away)}
+        <span class="gc-abbr">${away}</span>
+        <span class="gc-name">${awayName}</span>
+        <span class="gc-record ${awayWon ? "winner" : ""}">${game.awayRecord || ""}</span>
       </div>
       <div class="gc-center">
         <div class="gc-scores">
-          <span class="gc-score ${awayScoreCls}">${game.awayScore}</span>
+          <span class="gc-score ${awayWon ? "winner" : homeWon ? "loser" : ""}">${scoreAway}</span>
           <span class="gc-dash">–</span>
-          <span class="gc-score ${homeScoreCls}">${game.homeScore}</span>
+          <span class="gc-score ${homeWon ? "winner" : awayWon ? "loser" : ""}">${scoreHome}</span>
         </div>
       </div>
-      <div class="gc-team ${homeTeamCls}">
-        ${logoImg(game.home)}
-        <span class="gc-abbr">${game.home}</span>
-        <span class="gc-name">${homeTeamName}</span>
-        <span class="gc-record ${homeWon ? "winner" : ""}">${homeRecUpd}</span>
+      <div class="gc-team ${homeWon ? "win-side" : awayWon ? "loss-side" : ""}">
+        ${logoImg(home)}
+        <span class="gc-abbr">${home}</span>
+        <span class="gc-name">${homeName}</span>
+        <span class="gc-record ${homeWon ? "winner" : ""}">${game.homeRecord || ""}</span>
       </div>
     </div>
-    <div class="gc-footer">
-      <div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${game.stadium}</div>
-    </div>
+    ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
   </div>
 </div>`;
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────────
 function init() {
     buildCalendar();
 
-    // Find today or the next upcoming game day
-    let defaultIdx = SCHEDULE.findIndex(d => d.date >= TODAY);
-    if (defaultIdx === -1) defaultIdx = SCHEDULE.length - 1;
+    // Find today or the next upcoming date
+    let defaultIdx = SCHEDULE_DATES.findIndex(d => d.date >= TODAY);
+    if (defaultIdx === -1) defaultIdx = SCHEDULE_DATES.length - 1;
 
     showDay(defaultIdx);
 
-    // Scroll the active day into view
-    const activeBtn = document.querySelector(".cal-day.active, .cal-day.today");
-    if (activeBtn) {
-        setTimeout(() => activeBtn.scrollIntoView({ inline: "center", behavior: "smooth" }), 100);
-    }
+    // Scroll active day into view
+    setTimeout(() => {
+        const active = document.querySelector(".cal-day.active, .cal-day.today");
+        if (active) active.scrollIntoView({ inline: "center", behavior: "smooth" });
+    }, 100);
 }
 
 document.addEventListener("DOMContentLoaded", init);

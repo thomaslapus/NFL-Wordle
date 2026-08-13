@@ -176,10 +176,42 @@ function initTabs() {
 }
 
 // ── Data load ─────────────────────────────────────────────────────────────────
-async function loadData() {
-    teamStats   = DUMMY_TEAM_STATS;
-    playerStats = DUMMY_PLAYER_STATS;
-    return false; // never "still loading"
+let activeSeason = "2026";
+
+async function loadData(season) {
+    activeSeason = season || activeSeason;
+    const note = document.getElementById("season-note");
+
+    if (activeSeason === "2025") {
+        teamStats   = DUMMY_TEAM_STATS;
+        playerStats = DUMMY_PLAYER_STATS;
+        if (note) note.textContent = "Showing 2025 historical data";
+        return false;
+    }
+
+    // 2026 — try live API
+    if (note) note.textContent = "Loading…";
+    try {
+        const [tRes, pRes] = await Promise.all([
+            fetch("/api/team-stats"),
+            fetch("/api/player-stats"),
+        ]);
+        if (tRes.ok) {
+            const d = await tRes.json();
+            if (Array.isArray(d) && d.length > 0) teamStats = d;
+        }
+        if (pRes.ok) {
+            const d = await pRes.json();
+            if (Array.isArray(d) && d.length > 0) playerStats = d;
+        }
+    } catch (_) {}
+
+    if (!teamStats)   teamStats   = DUMMY_TEAM_STATS;
+    if (!playerStats) playerStats = DUMMY_PLAYER_STATS;
+
+    const isLive = teamStats !== DUMMY_TEAM_STATS;
+    if (note) note.textContent = isLive ? "Live 2026 data" : "API loading — showing 2025 data";
+    return false;
 }
 
 // ── Player comparison ─────────────────────────────────────────────────────────
@@ -260,7 +292,7 @@ function buildPlayerSelects() {
             sel.appendChild(opt);
         });
 
-        if (filtered[i]) sel.value = filtered[i].id;
+        // Start blank — user picks players manually
         sel.addEventListener("change", renderCompareTable);
         group.appendChild(label);
         group.appendChild(sel);
@@ -399,42 +431,130 @@ function renderScatter(container, { title, data, xKey, xLabel, yKey, yLabel, nam
     container.appendChild(wrap);
 }
 
-// ── RB player charts ──────────────────────────────────────────────────────────
-function buildRBCharts() {
-    const container = document.getElementById("rb-charts");
+// ── Player charts — all positions ─────────────────────────────────────────────
+let activeChartPos = "QB";
+
+function buildPlayerCharts(pos) {
+    activeChartPos = pos || activeChartPos;
+    const container = document.getElementById("player-charts-area");
+    if (!container) return;
     container.innerHTML = "";
-
-    const rbs = playerStats
-        .filter(p => p.pos === "RB" && p.rushAtt > 0)
-        .sort((a, b) => b.rushYds - a.rushYds)
-        .slice(0, 30);
-
-    if (!rbs.length) {
-        container.innerHTML = '<p style="color:var(--text-dim);padding:20px">RB data not yet available.</p>';
-        return;
-    }
-
+    const yr = activeSeason;
     const logoFn = d => d.teamLogo || ESPN_LOGO(d.team);
 
-    renderScatter(container, {
-        title:  "2025 RBs — Yards Per Carry vs. Carries Per Game",
-        data:   rbs, xKey: "ypc",    xLabel: "Yards Per Carry",
-        yKey:   "cpg",               yLabel: "Carries Per Game",
-        nameKey: "name", logoFn,
-    });
+    if (activeChartPos === "QB") {
+        const qbs = playerStats
+            .filter(p => p.pos === "QB" && p.passAtt > 10)
+            .sort((a, b) => b.passYds - a.passYds)
+            .slice(0, 32)
+            .map(p => ({ ...p, ypa: p.passAtt > 0 ? +(p.passYds / p.passAtt).toFixed(2) : 0,
+                                tdpct: p.passAtt > 0 ? +(p.passTDs / p.passAtt * 100).toFixed(1) : 0 }));
 
-    renderScatter(container, {
-        title:  "2025 RBs — Touchdowns vs. Rush Yards Per Game",
-        data:   rbs, xKey: "rushTDs", xLabel: "Touchdowns",
-        yKey:   "rushYpg",            yLabel: "Rush Yards Per Game",
-        nameKey: "name", logoFn,
-    });
+        if (!qbs.length) { container.innerHTML = noDataMsg("QB"); return; }
 
-    renderScatter(container, {
-        title:  "2025 RBs — Games Played vs. Rush Yards Per Game",
-        data:   rbs, xKey: "games",  xLabel: "Games Played",
-        yKey:   "rushYpg",           yLabel: "Rush Yards Per Game",
-        nameKey: "name", logoFn,
+        renderScatter(container, {
+            title: `${yr} QBs — Completion % vs. Passing TDs`,
+            data: qbs, xKey: "compPct", xLabel: "Completion %",
+            yKey: "passTDs", yLabel: "Passing TDs", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} QBs — Yards Per Attempt vs. Pass Yards`,
+            data: qbs, xKey: "ypa", xLabel: "Yards Per Attempt (Efficiency)",
+            yKey: "passYds", yLabel: "Total Pass Yards", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} QBs — Rush Yards vs. Pass TDs (Dual Threat)`,
+            data: qbs, xKey: "rushYds", xLabel: "Rush Yards",
+            yKey: "passTDs", yLabel: "Pass TDs", nameKey: "name", logoFn,
+        });
+
+    } else if (activeChartPos === "RB") {
+        const rbs = playerStats
+            .filter(p => p.pos === "RB" && p.rushAtt > 0)
+            .sort((a, b) => b.rushYds - a.rushYds)
+            .slice(0, 30);
+
+        if (!rbs.length) { container.innerHTML = noDataMsg("RB"); return; }
+
+        renderScatter(container, {
+            title: `${yr} RBs — Yards Per Carry vs. Carries Per Game`,
+            data: rbs, xKey: "ypc", xLabel: "Yards Per Carry (Efficiency)",
+            yKey: "cpg", yLabel: "Carries Per Game (Volume)", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} RBs — Rush TDs vs. Rush Yards Per Game`,
+            data: rbs, xKey: "rushTDs", xLabel: "Rush Touchdowns",
+            yKey: "rushYpg", yLabel: "Rush Yards Per Game", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} RBs — Receiving vs. Rushing (Dual Role)`,
+            data: rbs, xKey: "recPg", xLabel: "Receptions Per Game",
+            yKey: "rushYpg", yLabel: "Rush Yards Per Game", nameKey: "name", logoFn,
+        });
+
+    } else if (activeChartPos === "WR") {
+        const wrs = playerStats
+            .filter(p => p.pos === "WR" && p.recRec > 0)
+            .sort((a, b) => b.recYds - a.recYds)
+            .slice(0, 40)
+            .map(p => ({ ...p, ypr: p.recRec > 0 ? +(p.recYds / p.recRec).toFixed(1) : 0 }));
+
+        if (!wrs.length) { container.innerHTML = noDataMsg("WR"); return; }
+
+        renderScatter(container, {
+            title: `${yr} WRs — Yards Per Reception vs. Receptions Per Game`,
+            data: wrs, xKey: "ypr", xLabel: "Yards Per Reception (Efficiency)",
+            yKey: "recPg", yLabel: "Receptions Per Game (Volume)", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} WRs — Receiving TDs vs. Receiving Yards`,
+            data: wrs, xKey: "recYds", xLabel: "Total Receiving Yards",
+            yKey: "recTDs", yLabel: "Receiving TDs", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} WRs — Rec Yards Per Game vs. Receiving TDs`,
+            data: wrs, xKey: "recYpg", xLabel: "Rec Yards Per Game",
+            yKey: "recTDs", yLabel: "Receiving TDs", nameKey: "name", logoFn,
+        });
+
+    } else if (activeChartPos === "TE") {
+        const tes = playerStats
+            .filter(p => p.pos === "TE" && p.recRec > 0)
+            .sort((a, b) => b.recYds - a.recYds)
+            .slice(0, 30)
+            .map(p => ({ ...p, ypr: p.recRec > 0 ? +(p.recYds / p.recRec).toFixed(1) : 0 }));
+
+        if (!tes.length) { container.innerHTML = noDataMsg("TE"); return; }
+
+        renderScatter(container, {
+            title: `${yr} TEs — Yards Per Reception vs. Receptions Per Game`,
+            data: tes, xKey: "ypr", xLabel: "Yards Per Reception (Efficiency)",
+            yKey: "recPg", yLabel: "Receptions Per Game (Volume)", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} TEs — Receiving TDs vs. Receiving Yards`,
+            data: tes, xKey: "recYds", xLabel: "Total Receiving Yards",
+            yKey: "recTDs", yLabel: "Receiving TDs", nameKey: "name", logoFn,
+        });
+        renderScatter(container, {
+            title: `${yr} TEs — Rec Yards Per Game vs. Total Rec TDs`,
+            data: tes, xKey: "recYpg", xLabel: "Rec Yards Per Game",
+            yKey: "recTDs", yLabel: "Receiving TDs", nameKey: "name", logoFn,
+        });
+    }
+}
+
+function noDataMsg(pos) {
+    return `<p style="color:var(--text-dim);padding:20px">${pos} chart data not yet available.</p>`;
+}
+
+function initPlayerChartTabs() {
+    document.querySelectorAll(".chart-pos-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".chart-pos-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            buildPlayerCharts(btn.dataset.pos);
+        });
     });
 }
 
@@ -442,6 +562,7 @@ function buildRBCharts() {
 function buildTeamCharts() {
     const container = document.getElementById("team-charts");
     container.innerHTML = "";
+    const yr = activeSeason;
 
     if (!teamStats.length) {
         container.innerHTML = '<p style="color:var(--text-dim);padding:20px">Team data not yet available.</p>';
@@ -450,27 +571,39 @@ function buildTeamCharts() {
 
     const logoFn = d => d.logo || ESPN_LOGO(d.abbr);
 
+    // Point differential as a proxy for overall team efficiency
+    const withDiff = teamStats
+        .filter(t => t.ppg > 0)
+        .map(t => ({ ...t, ptDiff: +(t.ppg - t.papg).toFixed(1) }));
+
     renderScatter(container, {
-        title:  "2025 — Points Scored vs. Points Allowed Per Game",
-        data:   teamStats, xKey: "ppg", xLabel: "Points Scored Per Game",
-        yKey:   "papg",                 yLabel: "Points Allowed Per Game",
+        title:  `${yr} — Offensive Efficiency: Points Scored vs. Yards Per Game`,
+        data:   withDiff, xKey: "ypg", xLabel: "Yards Gained Per Game",
+        yKey:   "ppg",                 yLabel: "Points Scored Per Game",
+        nameKey: "abbr", logoFn,
+    });
+
+    renderScatter(container, {
+        title:  `${yr} — Two-Way Performance: Points Scored vs. Points Allowed`,
+        data:   withDiff, xKey: "ppg",  xLabel: "Points Scored Per Game →",
+        yKey:   "papg",                 yLabel: "Points Allowed Per Game ↓ (lower = better)",
         nameKey: "abbr", logoFn,
     });
 
     const withYards = teamStats.filter(t => t.ypg > 0 && t.yapg > 0);
     if (withYards.length) {
         renderScatter(container, {
-            title:  "2025 — Yards Gained vs. Yards Allowed Per Game",
-            data:   withYards, xKey: "ypg", xLabel: "Yards Gained Per Game",
-            yKey:   "yapg",                  yLabel: "Yards Allowed Per Game",
+            title:  `${yr} — Yards Gained vs. Yards Allowed Per Game`,
+            data:   withYards, xKey: "ypg",  xLabel: "Yards Gained Per Game →",
+            yKey:   "yapg",                   yLabel: "Yards Allowed Per Game ↓ (lower = better)",
             nameKey: "abbr", logoFn,
         });
     }
 
     renderScatter(container, {
-        title:  "2025 — Yards Per Game vs. Points Per Game",
-        data:   teamStats, xKey: "ypg", xLabel: "Yards Per Game",
-        yKey:   "ppg",                  yLabel: "Points Per Game",
+        title:  `${yr} — Point Differential Per Game (Offense − Defense)`,
+        data:   withDiff, xKey: "ppg",    xLabel: "Points Scored Per Game",
+        yKey:   "ptDiff",                 yLabel: "Point Differential Per Game",
         nameKey: "abbr", logoFn,
     });
 }
@@ -553,14 +686,29 @@ function initTeamTable() {
     buildTeamTable();
 }
 
+// ── Season selector ───────────────────────────────────────────────────────────
+function initSeasonSelect() {
+    const sel = document.getElementById("season-select");
+    if (!sel) return;
+    sel.addEventListener("change", async () => {
+        await loadData(sel.value);
+        initTeamTable();
+        buildTeamCharts();
+        buildPlayerSelects();
+        buildPlayerCharts(activeChartPos);
+    });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
     initTabs();
-    await loadData();
+    initSeasonSelect();
+    await loadData("2026");
     initTeamTable();
     buildTeamCharts();
     initCompare();
-    buildRBCharts();
+    initPlayerChartTabs();
+    buildPlayerCharts("QB");
 }
 
 init();

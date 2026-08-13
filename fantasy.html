@@ -7,7 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
     <title>Fantasy — Mid Stats</title>
     <link rel="stylesheet" href="shared.css?v=3">
-    <link rel="stylesheet" href="fantasy.css?v=2">
+    <link rel="stylesheet" href="fantasy.css?v=3">
 </head>
 <body>
 
@@ -139,7 +139,12 @@
             <!-- Controls bar -->
             <div class="rank-controls">
                 <div class="rank-controls-left">
-                    <span class="rank-ctrl-label">Scoring</span>
+                    <span class="rank-ctrl-label">Season</span>
+                    <select id="season-select" class="rank-select">
+                        <option value="2026">2026 (Live)</option>
+                        <option value="2025">2025</option>
+                    </select>
+                    <span class="rank-ctrl-label" style="margin-left:8px">Scoring</span>
                     <select id="ppr-select" class="rank-select">
                         <option value="1">Full PPR</option>
                         <option value="0.5">Half PPR</option>
@@ -158,35 +163,47 @@
                 </div>
             </div>
 
-            <!-- Rankings full width -->
+            <!-- Rankings full width with scrollbar -->
             <div class="fant-card">
                 <div class="fant-card-header">
-                    <span class="fant-card-title">2025 Season Rankings</span>
+                    <span class="fant-card-title" id="rankings-title">Season Rankings</span>
                     <span class="fant-card-meta" id="scoring-label">Full PPR · by Fantasy Pts/Game</span>
                 </div>
                 <div class="fant-card-body" style="padding:0">
-                    <div id="rankings-all-body"></div>
+                    <div id="rankings-all-body" class="rankings-scroll"></div>
                 </div>
             </div>
 
-            <!-- Top 10 last week full width -->
+            <!-- Top performers by position — Last Week -->
             <div class="fant-card">
                 <div class="fant-card-header">
-                    <span class="fant-card-title">Top 10 — Last Week</span>
+                    <span class="fant-card-title">Top Performers — Last Week</span>
                     <span class="fant-card-meta">Wk 17, 2025 Season</span>
                 </div>
                 <div class="fant-card-body" style="padding:0">
+                    <div class="weekly-pos-tabs">
+                        <button class="weekly-pos-btn active" data-list="last" data-pos="QB">QB</button>
+                        <button class="weekly-pos-btn" data-list="last" data-pos="RB">RB</button>
+                        <button class="weekly-pos-btn" data-list="last" data-pos="WR">WR</button>
+                        <button class="weekly-pos-btn" data-list="last" data-pos="TE">TE</button>
+                    </div>
                     <div id="top10-last" class="weekly-list"></div>
                 </div>
             </div>
 
-            <!-- Top 10 projected full width -->
+            <!-- Top projected by position — This Week -->
             <div class="fant-card">
                 <div class="fant-card-header">
-                    <span class="fant-card-title">Top 10 Projected — This Week</span>
+                    <span class="fant-card-title">Top Projected — This Week</span>
                     <span class="fant-card-meta">Preseason — limited data</span>
                 </div>
                 <div class="fant-card-body" style="padding:0">
+                    <div class="weekly-pos-tabs">
+                        <button class="weekly-pos-btn active" data-list="proj" data-pos="QB">QB</button>
+                        <button class="weekly-pos-btn" data-list="proj" data-pos="RB">RB</button>
+                        <button class="weekly-pos-btn" data-list="proj" data-pos="WR">WR</button>
+                        <button class="weekly-pos-btn" data-list="proj" data-pos="TE">TE</button>
+                    </div>
                     <div id="top10-proj" class="weekly-list"></div>
                 </div>
             </div>
@@ -195,6 +212,6 @@
 
     </main>
 
-    <script src="fantasy.js?v=1" defer></script>
+    <script src="fantasy.js?v=3" defer></script>
 </body>
 </html>
