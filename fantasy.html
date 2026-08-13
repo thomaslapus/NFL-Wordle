@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fantasy football — My Team and Rankings — Mid Stats">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
+    <title>Fantasy — Mid Stats</title>
+    <link rel="stylesheet" href="shared.css?v=2">
+    <link rel="stylesheet" href="fantasy.css?v=1">
+</head>
+<body>
+
+    <nav id="navbar">
+        <a href="/" class="nav-brand" title="Mid Stats">
+            <span class="nav-emoji">🏈</span>
+            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
+        </a>
+        <a href="/" class="nav-link" title="Home">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="/stats.html" class="nav-link" title="NFL Stats">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
+            <span class="nav-label">Stats</span>
+        </a>
+        <a href="/NFL-Wordle.html" class="nav-link" title="NFL Wordle">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="nav-label">Wordle</span>
+        </a>
+        <a href="/games.html" class="nav-link" title="Games">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
+            <span class="nav-label">Games</span>
+        </a>
+        <a href="/fantasy.html" class="nav-link active" title="Fantasy">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 01-2-2V5h4"/><path d="M18 9h2a2 2 0 002-2V5h-4"/><path d="M6 3h12v7a6 6 0 01-12 0z"/><path d="M12 16v2"/><path d="M9 22h6"/><path d="M10 18h4"/></svg>
+            <span class="nav-label">Fantasy</span>
+        </a>
+    </nav>
+
+    <main>
+
+        <!-- Top tabs -->
+        <div class="page-tabs">
+            <button class="page-tab active" data-panel="panel-myteam">My Team</button>
+            <button class="page-tab" data-panel="panel-rankings">Rankings</button>
+        </div>
+
+        <!-- ===== MY TEAM ===== -->
+        <div id="panel-myteam" class="page-panel">
+
+            <!-- League link section -->
+            <div class="fant-card" id="league-link-card">
+                <div class="fant-card-header">
+                    <span class="fant-card-title">Link Your Fantasy League</span>
+                </div>
+                <div class="fant-card-body">
+                    <p class="fant-desc">Connect your Sleeper, ESPN, or Yahoo fantasy league to view your roster, matchups, and analysis here.</p>
+
+                    <div class="platform-tabs">
+                        <button class="plat-btn active" data-platform="sleeper">Sleeper</button>
+                        <button class="plat-btn" data-platform="espn">ESPN</button>
+                        <button class="plat-btn" data-platform="yahoo">Yahoo</button>
+                    </div>
+
+                    <div id="link-form-sleeper" class="link-form">
+                        <div class="link-field">
+                            <label class="link-label">League ID</label>
+                            <input type="text" class="link-input" placeholder="e.g. 1234567890" id="sleeper-league-id">
+                        </div>
+                        <button class="link-btn" id="link-sleeper-btn">Connect League</button>
+                        <p class="link-hint">Find your Sleeper League ID in the league settings.</p>
+                    </div>
+
+                    <div id="link-form-espn" class="link-form hidden">
+                        <div class="link-field">
+                            <label class="link-label">League ID</label>
+                            <input type="text" class="link-input" placeholder="e.g. 12345678" id="espn-league-id">
+                        </div>
+                        <div class="link-field">
+                            <label class="link-label">Season Year</label>
+                            <input type="text" class="link-input" placeholder="2026" id="espn-season" value="2026">
+                        </div>
+                        <button class="link-btn" id="link-espn-btn">Connect League</button>
+                        <p class="link-hint">ESPN private leagues also require your ESPN_S2 cookie — coming soon.</p>
+                    </div>
+
+                    <div id="link-form-yahoo" class="link-form hidden">
+                        <div class="link-field">
+                            <label class="link-label">League Key</label>
+                            <input type="text" class="link-input" placeholder="e.g. nfl.l.12345" id="yahoo-league-key">
+                        </div>
+                        <button class="link-btn" id="link-yahoo-btn">Connect League</button>
+                        <p class="link-hint">Yahoo integration coming soon — API OAuth support in progress.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team roster (shown after linking) -->
+            <div id="team-roster-wrap" class="hidden">
+                <div class="fant-card">
+                    <div class="fant-card-header">
+                        <span class="fant-card-title" id="team-name-label">My Team</span>
+                        <span class="fant-card-meta" id="team-record-label">—</span>
+                    </div>
+                    <div class="fant-card-body">
+
+                        <!-- Starters -->
+                        <div class="roster-section-title">Starters</div>
+                        <div class="roster-grid" id="roster-starters">
+                            <p class="fant-dim">Link a league to view your roster.</p>
+                        </div>
+
+                        <!-- Bench -->
+                        <div class="roster-section-title" style="margin-top:16px">Bench</div>
+                        <div class="roster-grid" id="roster-bench">
+                            <p class="fant-dim">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matchup preview -->
+                <div class="fant-card">
+                    <div class="fant-card-header">
+                        <span class="fant-card-title">This Week's Matchup</span>
+                        <span class="fant-card-meta" id="matchup-week-label">—</span>
+                    </div>
+                    <div class="fant-card-body" id="matchup-body">
+                        <p class="fant-dim">No matchup data yet.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== RANKINGS ===== -->
+        <div id="panel-rankings" class="page-panel hidden">
+
+            <div class="rankings-layout">
+
+                <!-- Left column: position rankings -->
+                <div class="rankings-col">
+
+                    <div class="fant-card">
+                        <div class="fant-card-header">
+                            <span class="fant-card-title">2025 Season — Half-PPR Rankings</span>
+                            <span class="fant-card-meta">by Fantasy Pts/Game</span>
+                        </div>
+                        <div class="fant-card-body" style="padding:0">
+
+                            <!-- Each position is a collapsible group -->
+                            <div class="rank-group" id="rg-qb">
+                                <button class="rank-group-hdr" data-group="rg-qb">
+                                    <span class="rg-pos qb">QB</span>
+                                    <span class="rg-title">Quarterbacks</span>
+                                    <span class="rg-chevron">▼</span>
+                                </button>
+                                <div class="rank-group-body" id="rg-qb-body"></div>
+                            </div>
+
+                            <div class="rank-group" id="rg-rb">
+                                <button class="rank-group-hdr" data-group="rg-rb">
+                                    <span class="rg-pos rb">RB</span>
+                                    <span class="rg-title">Running Backs</span>
+                                    <span class="rg-chevron">▼</span>
+                                </button>
+                                <div class="rank-group-body" id="rg-rb-body"></div>
+                            </div>
+
+                            <div class="rank-group" id="rg-wr">
+                                <button class="rank-group-hdr" data-group="rg-wr">
+                                    <span class="rg-pos wr">WR</span>
+                                    <span class="rg-title">Wide Receivers</span>
+                                    <span class="rg-chevron">▼</span>
+                                </button>
+                                <div class="rank-group-body" id="rg-wr-body"></div>
+                            </div>
+
+                            <div class="rank-group" id="rg-te">
+                                <button class="rank-group-hdr" data-group="rg-te">
+                                    <span class="rg-pos te">TE</span>
+                                    <span class="rg-title">Tight Ends</span>
+                                    <span class="rg-chevron">▼</span>
+                                </button>
+                                <div class="rank-group-body" id="rg-te-body"></div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right column: weekly analysis -->
+                <div class="rankings-col">
+
+                    <div class="fant-card">
+                        <div class="fant-card-header">
+                            <span class="fant-card-title">Top 10 — Last Week</span>
+                            <span class="fant-card-meta">Wk 17, 2025 Season</span>
+                        </div>
+                        <div class="fant-card-body" style="padding:0">
+                            <div id="top10-last" class="weekly-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="fant-card">
+                        <div class="fant-card-header">
+                            <span class="fant-card-title">Top 10 Projected — This Week</span>
+                            <span class="fant-card-meta">Preseason — limited data</span>
+                        </div>
+                        <div class="fant-card-body" style="padding:0">
+                            <div id="top10-proj" class="weekly-list"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script src="fantasy.js?v=1" defer></script>
+</body>
+</html>

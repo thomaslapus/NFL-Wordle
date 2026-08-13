@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Daily NFL games and stats">
+    <meta name="description" content="NFL game scores and schedule — Mid Stats">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-    <title>Mid Stats</title>
+    <title>Games — Mid Stats</title>
     <link rel="stylesheet" href="shared.css?v=2">
-    <link rel="stylesheet" href="index.css?v=3">
+    <link rel="stylesheet" href="games.css?v=1">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
             <span class="nav-emoji">🏈</span>
             <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
         </a>
-        <a href="/" class="nav-link active" title="Home">
+        <a href="/" class="nav-link" title="Home">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
             <span class="nav-label">Home</span>
         </a>
@@ -28,7 +28,7 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             <span class="nav-label">Wordle</span>
         </a>
-        <a href="/games.html" class="nav-link" title="Games">
+        <a href="/games.html" class="nav-link active" title="Games">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
             <span class="nav-label">Games</span>
         </a>
@@ -39,41 +39,20 @@
     </nav>
 
     <main>
-        <div id="hero">
-            <h1 id="hero-title">Mid Stats</h1>
-            <p id="hero-sub">Your NFL hub — games, stats, wordle &amp; fantasy</p>
+        <!-- Calendar scroll bar -->
+        <div id="cal-wrapper">
+            <div id="cal-track"></div>
         </div>
 
-        <div id="cards">
-            <a href="/games.html" class="card">
-                <div class="card-icon">📅</div>
-                <h2>NFL Games</h2>
-                <p>Live scores, schedules, and game-day breakdowns for the 2026 season.</p>
-                <span class="card-tag tag-live">View Schedule</span>
-            </a>
-
-            <a href="/stats.html" class="card">
-                <div class="card-icon">📊</div>
-                <h2>NFL Stats</h2>
-                <p>Player and team stats from the 2025 season — compare, chart, and rank.</p>
-                <span class="card-tag tag-accent">Explore</span>
-            </a>
-
-            <a href="/NFL-Wordle.html" class="card">
-                <div class="card-icon">🏈</div>
-                <h2>NFL Wordle</h2>
-                <p>Guess the daily NFL player in 8 tries using position, age, and jersey clues.</p>
-                <span class="card-tag tag-live">Play Now</span>
-            </a>
-
-            <a href="/fantasy.html" class="card">
-                <div class="card-icon">🏆</div>
-                <h2>Fantasy</h2>
-                <p>Link your league, view rankings, and get weekly player projections.</p>
-                <span class="card-tag tag-soon">Beta</span>
-            </a>
+        <!-- Current day label + games grid -->
+        <div id="day-header">
+            <span id="day-label"></span>
+            <span id="day-badge"></span>
         </div>
+
+        <div id="games-grid"></div>
     </main>
 
+    <script src="games.js?v=1" defer></script>
 </body>
 </html>

@@ -6,18 +6,36 @@
     <meta name="description" content="NFL player and team stats — Mid Stats">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
     <title>NFL Stats — Mid Stats</title>
-    <link rel="stylesheet" href="shared.css?v=1">
-    <link rel="stylesheet" href="stats.css?v=2">
+    <link rel="stylesheet" href="shared.css?v=2">
+    <link rel="stylesheet" href="stats.css?v=3">
 </head>
 <body>
 
     <nav id="navbar">
-        <a href="/" class="nav-brand">Mid Stats</a>
-        <div class="nav-links">
-            <a href="/" class="nav-link">Home</a>
-            <a href="/stats.html" class="nav-link active">NFL Stats</a>
-            <a href="/NFL-Wordle.html" class="nav-link">NFL Wordle</a>
-        </div>
+        <a href="/" class="nav-brand" title="Mid Stats">
+            <span class="nav-emoji">🏈</span>
+            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
+        </a>
+        <a href="/" class="nav-link" title="Home">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="/stats.html" class="nav-link active" title="NFL Stats">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
+            <span class="nav-label">Stats</span>
+        </a>
+        <a href="/NFL-Wordle.html" class="nav-link" title="NFL Wordle">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="nav-label">Wordle</span>
+        </a>
+        <a href="/games.html" class="nav-link" title="Games">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
+            <span class="nav-label">Games</span>
+        </a>
+        <a href="/fantasy.html" class="nav-link" title="Fantasy">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 01-2-2V5h4"/><path d="M18 9h2a2 2 0 002-2V5h-4"/><path d="M6 3h12v7a6 6 0 01-12 0z"/><path d="M12 16v2"/><path d="M9 22h6"/><path d="M10 18h4"/></svg>
+            <span class="nav-label">Fantasy</span>
+        </a>
     </nav>
 
     <main>
@@ -46,10 +64,6 @@
                             <option value="RB" selected>RB</option>
                             <option value="WR">WR</option>
                             <option value="TE">TE</option>
-                            <option value="DL">DL</option>
-                            <option value="LB">LB</option>
-                            <option value="DB">DB</option>
-                            <option value="K">K</option>
                         </select>
                     </div>
                     <div id="player-selects" class="player-selects">
@@ -61,7 +75,7 @@
 
             <!-- Player Charts -->
             <div id="sub-pcharts" class="sub-panel hidden">
-                <p class="section-note">Top 30 Running Backs — 2025 Season (dummy data)</p>
+                <p class="section-note">Top Running Backs — 2025 Season</p>
                 <div id="rb-charts"></div>
             </div>
 
@@ -77,7 +91,7 @@
 
             <!-- Team Rankings Table -->
             <div id="sub-tlist" class="sub-panel">
-                <p class="section-note">All 32 NFL Teams — 2025 Season (dummy data). Click a column header to sort.</p>
+                <p class="section-note">All 32 NFL Teams — 2025 Season. Click a column header to sort.</p>
                 <div class="table-scroll">
                     <table id="team-table" class="stats-table">
                         <thead>
@@ -105,7 +119,7 @@
 
             <!-- Team Charts -->
             <div id="sub-tcharts" class="sub-panel hidden">
-                <p class="section-note">All 32 NFL Teams — 2025 Season (dummy data)</p>
+                <p class="section-note">All 32 NFL Teams — 2025 Season</p>
                 <div id="team-charts"></div>
             </div>
 

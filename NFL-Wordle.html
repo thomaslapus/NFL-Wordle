@@ -4,35 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Guess the daily NFL player">
-    <!-- Emoji favicon — no image file needed, works in all modern browsers -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
     <meta property="og:title" content="NFL Wordle">
     <meta property="og:description" content="Guess the daily NFL player in 8 tries!">
     <meta property="og:type" content="website">
     <title>Mid Stats — NFL Wordle</title>
-    <link rel="stylesheet" href="shared.css">
-    <link rel="stylesheet" href="NFL-Wordle.css?v=10">
+    <link rel="stylesheet" href="shared.css?v=2">
+    <link rel="stylesheet" href="NFL-Wordle.css?v=11">
 </head>
 <body>
 
-    <!--
-        Was: <header> element inside a CSS grid layout with left/right panel columns
-        Now: proper <nav> bar — fixed to top, holds logo, page links, and help button
-    -->
     <nav id="navbar">
-        <a href="/" class="nav-brand">Mid Stats</a>
-        <div class="nav-links">
-            <a href="/" class="nav-link">Home</a>
-            <a href="/stats.html" class="nav-link">NFL Stats</a>
-            <a href="/NFL-Wordle.html" class="nav-link active">NFL Wordle</a>
-        </div>
+        <a href="/" class="nav-brand" title="Mid Stats">
+            <span class="nav-emoji">🏈</span>
+            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
+        </a>
+        <a href="/" class="nav-link" title="Home">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="/stats.html" class="nav-link" title="NFL Stats">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
+            <span class="nav-label">Stats</span>
+        </a>
+        <a href="/NFL-Wordle.html" class="nav-link active" title="NFL Wordle">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="nav-label">Wordle</span>
+        </a>
+        <a href="/games.html" class="nav-link" title="Games">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
+            <span class="nav-label">Games</span>
+        </a>
+        <a href="/fantasy.html" class="nav-link" title="Fantasy">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 01-2-2V5h4"/><path d="M18 9h2a2 2 0 002-2V5h-4"/><path d="M6 3h12v7a6 6 0 01-12 0z"/><path d="M12 16v2"/><path d="M9 22h6"/><path d="M10 18h4"/></svg>
+            <span class="nav-label">Fantasy</span>
+        </a>
     </nav>
 
     <main>
         <p id="loading-message">Loading today's puzzle...</p>
         <p id="error-message" class="hidden-error">Failed to load. Please refresh the page.</p>
 
-        <!-- ? button on the left, gamebox + input stacked on the right — tops aligned -->
         <button id="how-to-play-btn" class="nav-btn" aria-label="How to Play">?</button>
         <div id="game-area">
             <div id="game-content">
@@ -48,46 +60,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="hidden-row1" data-guess="1">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row2" data-guess="2">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row3" data-guess="3">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row4" data-guess="4">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row5" data-guess="5">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row6" data-guess="6">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row7" data-guess="7">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
-                            <tr class="hidden-row8" data-guess="8">
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td><td class="table-cell"></td>
-                                <td class="table-cell"></td>
-                            </tr>
+                            <tr class="hidden-row1" data-guess="1"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row2" data-guess="2"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row3" data-guess="3"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row4" data-guess="4"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row5" data-guess="5"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row6" data-guess="6"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row7" data-guess="7"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
+                            <tr class="hidden-row8" data-guess="8"><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td><td class="table-cell"></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -99,32 +79,14 @@
             </div>
         </div>
 
-        <!-- hidden until win or lose — JS removes hidden-stats on game end -->
         <div id="stats-bar" class="hidden-stats">
-            <div class="stat-item">
-                <span class="stat-value" id="stat-played">0</span>
-                <span class="stat-label">Played</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="stat-winpct">0%</span>
-                <span class="stat-label">Win %</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="stat-streak">0</span>
-                <span class="stat-label">Streak</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="stat-maxstreak">0</span>
-                <span class="stat-label">Best</span>
-            </div>
+            <div class="stat-item"><span class="stat-value" id="stat-played">0</span><span class="stat-label">Played</span></div>
+            <div class="stat-item"><span class="stat-value" id="stat-winpct">0%</span><span class="stat-label">Win %</span></div>
+            <div class="stat-item"><span class="stat-value" id="stat-streak">0</span><span class="stat-label">Streak</span></div>
+            <div class="stat-item"><span class="stat-value" id="stat-maxstreak">0</span><span class="stat-label">Best</span></div>
         </div>
     </main>
 
-    <!--
-        Was: positioned outside </html> (invalid HTML) with a hardcoded left: calc(50% - 400px)
-        Now: inside <body>, uses a full-screen overlay like result-modal
-        Added: ✕ close button inside the modal itself
-    -->
     <div id="how-to-play-box" class="hidden-how-to-play">
         <div id="how-to-play">
             <button id="how-to-play-close" class="modal-close-btn" aria-label="Close">✕</button>
@@ -134,12 +96,11 @@
                 <li>You have <strong>8 attempts</strong> to guess the correct player.</li>
                 <li>After each guess the table fills with clues about the player you picked.</li>
                 <li><span class="legend-green">Green</span> — exact match for that column.</li>
-                <li><span class="legend-gold">Yellow</span> — Team: same division · Position: same group (offense/defense/ST) · Age: within 5 years · Number: within 10.</li>
+                <li><span class="legend-gold">Yellow</span> — Team: same division · Position: same group · Age: within 5 years · Number: within 10.</li>
             </ul>
         </div>
     </div>
 
-    <!-- Result modal: shown on win or loss -->
     <div id="result-modal" class="hidden-modal">
         <div id="result-content">
             <h2 id="result-title"></h2>
@@ -148,10 +109,6 @@
         </div>
     </div>
 
-    <!--
-        defer: script downloads in parallel with HTML parsing but only executes
-        after the full DOM is built — so all getElementById calls above find their elements
-    -->
     <script src="NFL-Wordle.js?v=2" defer></script>
 </body>
 </html>
