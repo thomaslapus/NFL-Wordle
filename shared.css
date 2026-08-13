@@ -3,23 +3,24 @@
    ============================================================ */
 
 :root {
-    --bg:        #0b1627;
-    --surface:   #0f2040;
-    --surface-2: #142d59;
-    --surface-3: #1a3b73;
+    --bg:        #0d1520;
+    --surface:   #182333;
+    --surface-2: #1e2d42;
+    --surface-3: #243650;
     --accent:    #4d8fd4;
     --accent-2:  #6aabf0;
     --gold:      #e6b821;
     --text:      #c8ddf5;
     --text-dim:  #6b8db4;
-    --border:    rgba(70, 130, 220, 0.2);
+    --border:    rgba(100, 140, 190, 0.22);
     --danger:    #ff6b6b;
     --success:   #4caf6d;
     --nav-w:     112px;   /* body padding-left — clears the 80px nav + gaps */
     --nav-h:     0px;     /* legacy — kept so old calc() references don't break */
     --radius:    10px;
     --shadow:    0 4px 24px rgba(0, 5, 20, 0.6);
-    --metal-bg:  linear-gradient(160deg, #142d59 0%, #0f2040 55%, #091830 100%);
+    --metal-bg:  linear-gradient(160deg, #1e2d42 0%, #182333 55%, #101825 100%);
+    --card-bg:   linear-gradient(155deg, #1e2d42 0%, #182333 80%, #101825 100%);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,7 +48,7 @@ body {
     align-items: center;
     gap: 2px;
     padding: 14px 6px 16px;
-    background: linear-gradient(175deg, #1d3c78 0%, #122a55 45%, #0d2044 100%);
+    background: linear-gradient(175deg, #1d3060 0%, #142248 45%, #0f1c35 100%);
     border: 1px solid rgba(80, 155, 255, 0.22);
     border-radius: 22px;
     box-shadow:

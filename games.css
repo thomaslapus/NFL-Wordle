@@ -13,7 +13,7 @@ main {
 
 /* ── Calendar scroll bar ── */
 #cal-wrapper {
-    background: linear-gradient(155deg, #142d59 0%, #0f2040 100%);
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -127,7 +127,7 @@ main {
 
 /* ── Game card ── */
 .game-card {
-    background: linear-gradient(155deg, #142d59 0%, #0f2040 80%, #091830 100%);
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -151,7 +151,7 @@ main {
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-dim);
-    background: rgba(8, 18, 40, 0.35);
+    background: rgba(8, 16, 28, 0.4);
     letter-spacing: 0.2px;
 }
 

@@ -6,8 +6,8 @@
     <meta name="description" content="Fantasy football — My Team and Rankings — Mid Stats">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
     <title>Fantasy — Mid Stats</title>
-    <link rel="stylesheet" href="shared.css?v=2">
-    <link rel="stylesheet" href="fantasy.css?v=1">
+    <link rel="stylesheet" href="shared.css?v=3">
+    <link rel="stylesheet" href="fantasy.css?v=2">
 </head>
 <body>
 
@@ -136,85 +136,59 @@
         <!-- ===== RANKINGS ===== -->
         <div id="panel-rankings" class="page-panel hidden">
 
-            <div class="rankings-layout">
-
-                <!-- Left column: position rankings -->
-                <div class="rankings-col">
-
-                    <div class="fant-card">
-                        <div class="fant-card-header">
-                            <span class="fant-card-title">2025 Season — Half-PPR Rankings</span>
-                            <span class="fant-card-meta">by Fantasy Pts/Game</span>
-                        </div>
-                        <div class="fant-card-body" style="padding:0">
-
-                            <!-- Each position is a collapsible group -->
-                            <div class="rank-group" id="rg-qb">
-                                <button class="rank-group-hdr" data-group="rg-qb">
-                                    <span class="rg-pos qb">QB</span>
-                                    <span class="rg-title">Quarterbacks</span>
-                                    <span class="rg-chevron">▼</span>
-                                </button>
-                                <div class="rank-group-body" id="rg-qb-body"></div>
-                            </div>
-
-                            <div class="rank-group" id="rg-rb">
-                                <button class="rank-group-hdr" data-group="rg-rb">
-                                    <span class="rg-pos rb">RB</span>
-                                    <span class="rg-title">Running Backs</span>
-                                    <span class="rg-chevron">▼</span>
-                                </button>
-                                <div class="rank-group-body" id="rg-rb-body"></div>
-                            </div>
-
-                            <div class="rank-group" id="rg-wr">
-                                <button class="rank-group-hdr" data-group="rg-wr">
-                                    <span class="rg-pos wr">WR</span>
-                                    <span class="rg-title">Wide Receivers</span>
-                                    <span class="rg-chevron">▼</span>
-                                </button>
-                                <div class="rank-group-body" id="rg-wr-body"></div>
-                            </div>
-
-                            <div class="rank-group" id="rg-te">
-                                <button class="rank-group-hdr" data-group="rg-te">
-                                    <span class="rg-pos te">TE</span>
-                                    <span class="rg-title">Tight Ends</span>
-                                    <span class="rg-chevron">▼</span>
-                                </button>
-                                <div class="rank-group-body" id="rg-te-body"></div>
-                            </div>
-
-                        </div>
-                    </div>
-
+            <!-- Controls bar -->
+            <div class="rank-controls">
+                <div class="rank-controls-left">
+                    <span class="rank-ctrl-label">Scoring</span>
+                    <select id="ppr-select" class="rank-select">
+                        <option value="1">Full PPR</option>
+                        <option value="0.5">Half PPR</option>
+                        <option value="0">No PPR</option>
+                    </select>
                 </div>
-
-                <!-- Right column: weekly analysis -->
-                <div class="rankings-col">
-
-                    <div class="fant-card">
-                        <div class="fant-card-header">
-                            <span class="fant-card-title">Top 10 — Last Week</span>
-                            <span class="fant-card-meta">Wk 17, 2025 Season</span>
-                        </div>
-                        <div class="fant-card-body" style="padding:0">
-                            <div id="top10-last" class="weekly-list"></div>
-                        </div>
+                <div class="rank-controls-right">
+                    <span class="rank-ctrl-label">Position</span>
+                    <div class="pos-filter-btns">
+                        <button class="pos-btn active" data-pos="ALL">All</button>
+                        <button class="pos-btn" data-pos="QB">QB</button>
+                        <button class="pos-btn" data-pos="RB">RB</button>
+                        <button class="pos-btn" data-pos="WR">WR</button>
+                        <button class="pos-btn" data-pos="TE">TE</button>
                     </div>
-
-                    <div class="fant-card">
-                        <div class="fant-card-header">
-                            <span class="fant-card-title">Top 10 Projected — This Week</span>
-                            <span class="fant-card-meta">Preseason — limited data</span>
-                        </div>
-                        <div class="fant-card-body" style="padding:0">
-                            <div id="top10-proj" class="weekly-list"></div>
-                        </div>
-                    </div>
-
                 </div>
+            </div>
 
+            <!-- Rankings full width -->
+            <div class="fant-card">
+                <div class="fant-card-header">
+                    <span class="fant-card-title">2025 Season Rankings</span>
+                    <span class="fant-card-meta" id="scoring-label">Full PPR · by Fantasy Pts/Game</span>
+                </div>
+                <div class="fant-card-body" style="padding:0">
+                    <div id="rankings-all-body"></div>
+                </div>
+            </div>
+
+            <!-- Top 10 last week full width -->
+            <div class="fant-card">
+                <div class="fant-card-header">
+                    <span class="fant-card-title">Top 10 — Last Week</span>
+                    <span class="fant-card-meta">Wk 17, 2025 Season</span>
+                </div>
+                <div class="fant-card-body" style="padding:0">
+                    <div id="top10-last" class="weekly-list"></div>
+                </div>
+            </div>
+
+            <!-- Top 10 projected full width -->
+            <div class="fant-card">
+                <div class="fant-card-header">
+                    <span class="fant-card-title">Top 10 Projected — This Week</span>
+                    <span class="fant-card-meta">Preseason — limited data</span>
+                </div>
+                <div class="fant-card-body" style="padding:0">
+                    <div id="top10-proj" class="weekly-list"></div>
+                </div>
             </div>
 
         </div>

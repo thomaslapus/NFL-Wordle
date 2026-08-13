@@ -83,7 +83,7 @@ main {
     align-items: flex-end;
     margin-bottom: 20px;
     padding: 16px;
-    background: linear-gradient(155deg, #142d59 0%, #0f2040 100%);
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
@@ -276,7 +276,7 @@ main {
 .chart-area {
     flex: 1;
     position: relative;
-    background: linear-gradient(155deg, #142d59 0%, #0f2040 100%);
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: visible;

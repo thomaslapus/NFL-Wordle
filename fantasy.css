@@ -40,7 +40,7 @@ main {
 
 /* ── Fant card (shared card component) ── */
 .fant-card {
-    background: linear-gradient(155deg, #142d59 0%, #0f2040 80%, #091830 100%);
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -204,19 +204,71 @@ main {
 .roster-team { font-size: 0.72rem; color: var(--text-dim); }
 .roster-pts  { font-weight: 700; color: var(--text); text-align: right; }
 
-/* ── Rankings layout ── */
-.rankings-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    align-items: start;
+/* ── Rankings controls bar ── */
+.rank-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 0 4px;
 }
 
-@media (max-width: 860px) {
-    .rankings-layout { grid-template-columns: 1fr; }
+.rank-controls-left,
+.rank-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.rankings-col { display: flex; flex-direction: column; }
+.rank-ctrl-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+.rank-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 7px 28px 7px 12px;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b8db4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s;
+}
+
+.rank-select:focus { border-color: var(--accent); }
+
+.pos-filter-btns {
+    display: flex;
+    gap: 4px;
+}
+
+.pos-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 6px 13px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.13s, color 0.13s, border-color 0.13s;
+    letter-spacing: 0.3px;
+}
+
+.pos-btn:hover { background: rgba(70,140,255,0.1); color: var(--text); }
+.pos-btn.active { background: rgba(70,140,255,0.18); border-color: rgba(106,171,240,0.4); color: var(--accent-2); }
 
 /* ── Collapsible position group ── */
 .rank-group { border-bottom: 1px solid var(--border); }
