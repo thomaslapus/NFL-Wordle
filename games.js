@@ -52,80 +52,83 @@ const T = {
 // ── Schedule dates — calendar structure only, no game data ────────────────────
 // Game matchup data comes from the server via /api/games?date=YYYYMMDD.
 const SCHEDULE_DATES = [
-    // Preseason — labels prefixed "PS" so they don't read as regular season weeks
-    { date:"20260730", label:"Thu Jul 30",   weekType:"Preseason", weekLabel:"HOF",    fullLabel:"Hall of Fame Game" },
-    { date:"20260813", label:"Thu Aug 13",   weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
-    { date:"20260814", label:"Fri Aug 14",   weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
-    { date:"20260815", label:"Sat Aug 15",   weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
-    { date:"20260817", label:"Mon Aug 17",   weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
-    { date:"20260820", label:"Thu Aug 20",   weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
-    { date:"20260821", label:"Fri Aug 21",   weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
-    { date:"20260822", label:"Sat Aug 22",   weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
-    { date:"20260824", label:"Mon Aug 24",   weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
-    { date:"20260827", label:"Thu Aug 27",   weekType:"Preseason", weekLabel:"PS Wk 3", fullLabel:"Preseason Week 3" },
-    { date:"20260828", label:"Fri Aug 28",   weekType:"Preseason", weekLabel:"PS Wk 3", fullLabel:"Preseason Week 3" },
+    // Preseason
+    { date:"20260730", label:"Thu Jul 30",  weekType:"Preseason", weekLabel:"HOF",     fullLabel:"Hall of Fame Game" },
+    { date:"20260813", label:"Thu Aug 13",  weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
+    { date:"20260814", label:"Fri Aug 14",  weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
+    { date:"20260815", label:"Sat Aug 15",  weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
+    { date:"20260820", label:"Thu Aug 20",  weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
+    { date:"20260821", label:"Fri Aug 21",  weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
+    { date:"20260822", label:"Sat Aug 22",  weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
+    { date:"20260823", label:"Sun Aug 23",  weekType:"Preseason", weekLabel:"PS Wk 2", fullLabel:"Preseason Week 2" },
+    { date:"20260827", label:"Thu Aug 27",  weekType:"Preseason", weekLabel:"PS Wk 3", fullLabel:"Preseason Week 3" },
+    { date:"20260828", label:"Fri Aug 28",  weekType:"Preseason", weekLabel:"PS Wk 3", fullLabel:"Preseason Week 3" },
+    { date:"20260829", label:"Sat Aug 29",  weekType:"Preseason", weekLabel:"PS Wk 3", fullLabel:"Preseason Week 3" },
     // Regular Season
-    { date:"20260903", label:"Thu Sep 3",    weekType:"Regular",   weekLabel:"Week 1",  fullLabel:"Regular Season Week 1" },
-    { date:"20260906", label:"Sun Sep 6",    weekType:"Regular",   weekLabel:"Week 1",  fullLabel:"Regular Season Week 1" },
-    { date:"20260907", label:"Mon Sep 7",    weekType:"Regular",   weekLabel:"Week 1",  fullLabel:"Regular Season Week 1" },
-    { date:"20260910", label:"Thu Sep 10",   weekType:"Regular",   weekLabel:"Week 2",  fullLabel:"Regular Season Week 2" },
-    { date:"20260913", label:"Sun Sep 13",   weekType:"Regular",   weekLabel:"Week 2",  fullLabel:"Regular Season Week 2" },
-    { date:"20260914", label:"Mon Sep 14",   weekType:"Regular",   weekLabel:"Week 2",  fullLabel:"Regular Season Week 2" },
-    { date:"20260917", label:"Thu Sep 17",   weekType:"Regular",   weekLabel:"Week 3",  fullLabel:"Regular Season Week 3" },
-    { date:"20260920", label:"Sun Sep 20",   weekType:"Regular",   weekLabel:"Week 3",  fullLabel:"Regular Season Week 3" },
-    { date:"20260921", label:"Mon Sep 21",   weekType:"Regular",   weekLabel:"Week 3",  fullLabel:"Regular Season Week 3" },
-    { date:"20260924", label:"Thu Sep 24",   weekType:"Regular",   weekLabel:"Week 4",  fullLabel:"Regular Season Week 4" },
-    { date:"20260927", label:"Sun Sep 27",   weekType:"Regular",   weekLabel:"Week 4",  fullLabel:"Regular Season Week 4" },
-    { date:"20260928", label:"Mon Sep 28",   weekType:"Regular",   weekLabel:"Week 4",  fullLabel:"Regular Season Week 4" },
-    { date:"20261001", label:"Thu Oct 1",    weekType:"Regular",   weekLabel:"Week 5",  fullLabel:"Regular Season Week 5" },
-    { date:"20261004", label:"Sun Oct 4",    weekType:"Regular",   weekLabel:"Week 5",  fullLabel:"Regular Season Week 5" },
-    { date:"20261005", label:"Mon Oct 5",    weekType:"Regular",   weekLabel:"Week 5",  fullLabel:"Regular Season Week 5" },
-    { date:"20261008", label:"Thu Oct 8",    weekType:"Regular",   weekLabel:"Week 6",  fullLabel:"Regular Season Week 6" },
-    { date:"20261011", label:"Sun Oct 11",   weekType:"Regular",   weekLabel:"Week 6",  fullLabel:"Regular Season Week 6" },
-    { date:"20261012", label:"Mon Oct 12",   weekType:"Regular",   weekLabel:"Week 6",  fullLabel:"Regular Season Week 6" },
-    { date:"20261015", label:"Thu Oct 15",   weekType:"Regular",   weekLabel:"Week 7",  fullLabel:"Regular Season Week 7" },
-    { date:"20261018", label:"Sun Oct 18",   weekType:"Regular",   weekLabel:"Week 7",  fullLabel:"Regular Season Week 7" },
-    { date:"20261019", label:"Mon Oct 19",   weekType:"Regular",   weekLabel:"Week 7",  fullLabel:"Regular Season Week 7" },
-    { date:"20261022", label:"Thu Oct 22",   weekType:"Regular",   weekLabel:"Week 8",  fullLabel:"Regular Season Week 8" },
-    { date:"20261025", label:"Sun Oct 25",   weekType:"Regular",   weekLabel:"Week 8",  fullLabel:"Regular Season Week 8" },
-    { date:"20261026", label:"Mon Oct 26",   weekType:"Regular",   weekLabel:"Week 8",  fullLabel:"Regular Season Week 8" },
-    { date:"20261029", label:"Thu Oct 29",   weekType:"Regular",   weekLabel:"Week 9",  fullLabel:"Regular Season Week 9" },
-    { date:"20261101", label:"Sun Nov 1",    weekType:"Regular",   weekLabel:"Week 9",  fullLabel:"Regular Season Week 9" },
-    { date:"20261102", label:"Mon Nov 2",    weekType:"Regular",   weekLabel:"Week 9",  fullLabel:"Regular Season Week 9" },
-    { date:"20261105", label:"Thu Nov 5",    weekType:"Regular",   weekLabel:"Week 10", fullLabel:"Regular Season Week 10" },
-    { date:"20261108", label:"Sun Nov 8",    weekType:"Regular",   weekLabel:"Week 10", fullLabel:"Regular Season Week 10" },
-    { date:"20261109", label:"Mon Nov 9",    weekType:"Regular",   weekLabel:"Week 10", fullLabel:"Regular Season Week 10" },
-    { date:"20261112", label:"Thu Nov 12",   weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
-    { date:"20261115", label:"Sun Nov 15",   weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
-    { date:"20261116", label:"Mon Nov 16",   weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
-    { date:"20261119", label:"Thu Nov 19",   weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
-    { date:"20261122", label:"Sun Nov 22",   weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
-    { date:"20261123", label:"Mon Nov 23",   weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
-    { date:"20261126", label:"Thu Nov 26",   weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
-    { date:"20261129", label:"Sun Nov 29",   weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
-    { date:"20261130", label:"Mon Nov 30",   weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
-    { date:"20261203", label:"Thu Dec 3",    weekType:"Regular",   weekLabel:"Week 14", fullLabel:"Regular Season Week 14" },
-    { date:"20261206", label:"Sun Dec 6",    weekType:"Regular",   weekLabel:"Week 14", fullLabel:"Regular Season Week 14" },
-    { date:"20261207", label:"Mon Dec 7",    weekType:"Regular",   weekLabel:"Week 14", fullLabel:"Regular Season Week 14" },
-    { date:"20261210", label:"Thu Dec 10",   weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
-    { date:"20261213", label:"Sun Dec 13",   weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
-    { date:"20261214", label:"Mon Dec 14",   weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
-    { date:"20261217", label:"Thu Dec 17",   weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
-    { date:"20261220", label:"Sun Dec 20",   weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
-    { date:"20261221", label:"Mon Dec 21",   weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
-    { date:"20261226", label:"Sat Dec 26",   weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
-    { date:"20261227", label:"Sun Dec 27",   weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
-    { date:"20261228", label:"Mon Dec 28",   weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
-    { date:"20270103", label:"Sun Jan 3",    weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
-    { date:"20270104", label:"Mon Jan 4",    weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
+    { date:"20260909", label:"Wed Sep 9",   weekType:"Regular",   weekLabel:"Week 1",  fullLabel:"Regular Season Week 1" },
+    { date:"20260910", label:"Thu Sep 10",  weekType:"Regular",   weekLabel:"Week 2",  fullLabel:"Regular Season Week 2" },
+    { date:"20260913", label:"Sun Sep 13",  weekType:"Regular",   weekLabel:"Week 2",  fullLabel:"Regular Season Week 2" },
+    { date:"20260914", label:"Mon Sep 14",  weekType:"Regular",   weekLabel:"Week 2",  fullLabel:"Regular Season Week 2" },
+    { date:"20260917", label:"Thu Sep 17",  weekType:"Regular",   weekLabel:"Week 3",  fullLabel:"Regular Season Week 3" },
+    { date:"20260920", label:"Sun Sep 20",  weekType:"Regular",   weekLabel:"Week 3",  fullLabel:"Regular Season Week 3" },
+    { date:"20260921", label:"Mon Sep 21",  weekType:"Regular",   weekLabel:"Week 3",  fullLabel:"Regular Season Week 3" },
+    { date:"20260924", label:"Thu Sep 24",  weekType:"Regular",   weekLabel:"Week 4",  fullLabel:"Regular Season Week 4" },
+    { date:"20260927", label:"Sun Sep 27",  weekType:"Regular",   weekLabel:"Week 4",  fullLabel:"Regular Season Week 4" },
+    { date:"20260928", label:"Mon Sep 28",  weekType:"Regular",   weekLabel:"Week 4",  fullLabel:"Regular Season Week 4" },
+    { date:"20261001", label:"Thu Oct 1",   weekType:"Regular",   weekLabel:"Week 5",  fullLabel:"Regular Season Week 5" },
+    { date:"20261004", label:"Sun Oct 4",   weekType:"Regular",   weekLabel:"Week 5",  fullLabel:"Regular Season Week 5" },
+    { date:"20261005", label:"Mon Oct 5",   weekType:"Regular",   weekLabel:"Week 5",  fullLabel:"Regular Season Week 5" },
+    { date:"20261008", label:"Thu Oct 8",   weekType:"Regular",   weekLabel:"Week 6",  fullLabel:"Regular Season Week 6" },
+    { date:"20261011", label:"Sun Oct 11",  weekType:"Regular",   weekLabel:"Week 6",  fullLabel:"Regular Season Week 6" },
+    { date:"20261012", label:"Mon Oct 12",  weekType:"Regular",   weekLabel:"Week 6",  fullLabel:"Regular Season Week 6" },
+    { date:"20261015", label:"Thu Oct 15",  weekType:"Regular",   weekLabel:"Week 7",  fullLabel:"Regular Season Week 7" },
+    { date:"20261018", label:"Sun Oct 18",  weekType:"Regular",   weekLabel:"Week 7",  fullLabel:"Regular Season Week 7" },
+    { date:"20261019", label:"Mon Oct 19",  weekType:"Regular",   weekLabel:"Week 7",  fullLabel:"Regular Season Week 7" },
+    { date:"20261022", label:"Thu Oct 22",  weekType:"Regular",   weekLabel:"Week 8",  fullLabel:"Regular Season Week 8" },
+    { date:"20261025", label:"Sun Oct 25",  weekType:"Regular",   weekLabel:"Week 8",  fullLabel:"Regular Season Week 8" },
+    { date:"20261026", label:"Mon Oct 26",  weekType:"Regular",   weekLabel:"Week 8",  fullLabel:"Regular Season Week 8" },
+    { date:"20261029", label:"Thu Oct 29",  weekType:"Regular",   weekLabel:"Week 9",  fullLabel:"Regular Season Week 9" },
+    { date:"20261101", label:"Sun Nov 1",   weekType:"Regular",   weekLabel:"Week 9",  fullLabel:"Regular Season Week 9" },
+    { date:"20261102", label:"Mon Nov 2",   weekType:"Regular",   weekLabel:"Week 9",  fullLabel:"Regular Season Week 9" },
+    { date:"20261105", label:"Thu Nov 5",   weekType:"Regular",   weekLabel:"Week 10", fullLabel:"Regular Season Week 10" },
+    { date:"20261108", label:"Sun Nov 8",   weekType:"Regular",   weekLabel:"Week 10", fullLabel:"Regular Season Week 10" },
+    { date:"20261109", label:"Mon Nov 9",   weekType:"Regular",   weekLabel:"Week 10", fullLabel:"Regular Season Week 10" },
+    { date:"20261112", label:"Thu Nov 12",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
+    { date:"20261115", label:"Sun Nov 15",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
+    { date:"20261116", label:"Mon Nov 16",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
+    { date:"20261119", label:"Thu Nov 19",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
+    { date:"20261122", label:"Sun Nov 22",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
+    { date:"20261123", label:"Mon Nov 23",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
+    { date:"20261125", label:"Wed Nov 25",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
+    { date:"20261126", label:"Thu Nov 26",  weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
+    { date:"20261127", label:"Fri Nov 27",  weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
+    { date:"20261129", label:"Sun Nov 29",  weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
+    { date:"20261130", label:"Mon Nov 30",  weekType:"Regular",   weekLabel:"Week 13", fullLabel:"Regular Season Week 13" },
+    { date:"20261203", label:"Thu Dec 3",   weekType:"Regular",   weekLabel:"Week 14", fullLabel:"Regular Season Week 14" },
+    { date:"20261206", label:"Sun Dec 6",   weekType:"Regular",   weekLabel:"Week 14", fullLabel:"Regular Season Week 14" },
+    { date:"20261207", label:"Mon Dec 7",   weekType:"Regular",   weekLabel:"Week 14", fullLabel:"Regular Season Week 14" },
+    { date:"20261210", label:"Thu Dec 10",  weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
+    { date:"20261213", label:"Sun Dec 13",  weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
+    { date:"20261214", label:"Mon Dec 14",  weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
+    { date:"20261217", label:"Thu Dec 17",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
+    { date:"20261219", label:"Sat Dec 19",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
+    { date:"20261220", label:"Sun Dec 20",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
+    { date:"20261221", label:"Mon Dec 21",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
+    { date:"20261225", label:"Fri Dec 25",  weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
+    { date:"20261227", label:"Sun Dec 27",  weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
+    { date:"20261228", label:"Mon Dec 28",  weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
+    { date:"20261231", label:"Thu Dec 31",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
+    { date:"20270103", label:"Sun Jan 3",   weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
+    { date:"20270104", label:"Mon Jan 4",   weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
     // Playoffs
-    { date:"20270117", label:"Sat Jan 17",   weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270118", label:"Sun Jan 18",   weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270119", label:"Mon Jan 19",   weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270124", label:"Sat Jan 24",   weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
-    { date:"20270125", label:"Sun Jan 25",   weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
-    { date:"20270201", label:"Sun Feb 1",    weekType:"Playoffs",  weekLabel:"Conf. Champ", fullLabel:"Conference Championships" },
-    { date:"20270207", label:"Sun Feb 7",    weekType:"Playoffs",  weekLabel:"Super Bowl",  fullLabel:"Super Bowl LXI" },
+    { date:"20270110", label:"Sun Jan 10",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
+    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
+    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
+    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
+    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
+    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
+    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"Conf. Champ", fullLabel:"Conference Championships" },
+    { date:"20270207", label:"Sun Feb 7",   weekType:"Playoffs",  weekLabel:"Super Bowl",  fullLabel:"Super Bowl LXI" },
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -137,30 +140,74 @@ function buildCalendar() {
     const track = document.getElementById("cal-track");
     if (!track) return;
 
+    // Group by season type, then by week label
+    const seasons = [];
+    let curSeason = null, curWeek = null;
     SCHEDULE_DATES.forEach((day, i) => {
-        const btn = document.createElement("button");
-        btn.className = "cal-day";
-        btn.dataset.idx = i;
-
-        const isPast   = day.date < TODAY;
-        const isToday  = day.date === TODAY;
-        const isFuture = day.date > TODAY;
-
-        if (isToday)  btn.classList.add("today");
-        if (isPast)   btn.classList.add("past");
-        if (isFuture) btn.classList.add("future");
-
-        // Week type badge color
-        const typeClass = day.weekType === "Preseason" ? "pre" :
-                          day.weekType === "Playoffs"  ? "post" : "reg";
-
-        btn.innerHTML = `
-            <span class="cal-week-type ${typeClass}">${day.weekLabel}</span>
-            <span class="cal-day-label">${day.label}</span>
-        `;
-        btn.addEventListener("click", () => showDay(i));
-        track.appendChild(btn);
+        if (!curSeason || curSeason.type !== day.weekType) {
+            curSeason = { type: day.weekType, weeks: [] };
+            seasons.push(curSeason);
+            curWeek = null;
+        }
+        if (!curWeek || curWeek.label !== day.weekLabel) {
+            curWeek = { label: day.weekLabel, days: [] };
+            curSeason.weeks.push(curWeek);
+        }
+        curWeek.days.push({ ...day, idx: i });
     });
+
+    for (const season of seasons) {
+        const sg = document.createElement("div");
+        sg.className = "cal-season-group";
+
+        const sh = document.createElement("div");
+        sh.className = "cal-season-header";
+        sh.textContent = season.type === "Regular" ? "Regular Season" : season.type;
+        sg.appendChild(sh);
+
+        const wr = document.createElement("div");
+        wr.className = "cal-weeks-row";
+
+        for (const week of season.weeks) {
+            const wg = document.createElement("div");
+            wg.className = "cal-week-group";
+
+            const wh = document.createElement("div");
+            wh.className = "cal-week-header";
+            wh.textContent = week.label.replace(/^PS Wk /, "Week ");
+            wg.appendChild(wh);
+
+            const ds = document.createElement("div");
+            ds.className = "cal-days";
+
+            for (const day of week.days) {
+                const btn = document.createElement("button");
+                btn.className = "cal-day";
+                btn.dataset.idx = day.idx;
+
+                if (day.date < TODAY)      btn.classList.add("past");
+                else if (day.date === TODAY) btn.classList.add("today");
+                else                        btn.classList.add("future");
+
+                // Playoff buttons keep their label badge; all others just show the date
+                if (day.weekType === "Playoffs") {
+                    const typeClass = "post";
+                    btn.innerHTML = `<span class="cal-week-type ${typeClass}">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
+                } else {
+                    btn.innerHTML = `<span class="cal-day-label">${day.label}</span>`;
+                }
+
+                btn.addEventListener("click", () => showDay(day.idx));
+                ds.appendChild(btn);
+            }
+
+            wg.appendChild(ds);
+            wr.appendChild(wg);
+        }
+
+        sg.appendChild(wr);
+        track.appendChild(sg);
+    }
 }
 
 // ── Show a day — fetch games from server, render ──────────────────────────────
@@ -192,6 +239,17 @@ async function showDay(idx) {
     }
 }
 
+function kickoffToMinutes(t) {
+    if (!t) return 9999;
+    const m = String(t).match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!m) return 9999;
+    let h = parseInt(m[1]), min = parseInt(m[2]);
+    const ap = m[3].toUpperCase();
+    if (ap === "PM" && h !== 12) h += 12;
+    if (ap === "AM" && h === 12) h = 0;
+    return h * 60 + min;
+}
+
 async function renderGamesForDate(dateStr, grid) {
     try {
         const res  = await fetch(`/api/games?date=${dateStr}`);
@@ -208,7 +266,9 @@ async function renderGamesForDate(dateStr, grid) {
             return;
         }
 
-        grid.innerHTML = games.map(renderCard).join("");
+        // Chronological order by kickoff time
+        const sorted = [...games].sort((a, b) => kickoffToMinutes(a.kickoff) - kickoffToMinutes(b.kickoff));
+        grid.innerHTML = sorted.map(renderCard).join("");
     } catch (err) {
         grid.innerHTML = `<div class="no-games">Failed to load game data.</div>`;
         console.error("Games fetch error:", err);
@@ -278,7 +338,7 @@ function renderLive(game) {
         ? `<div class="gc-possession"><span class="poss-dot"></span><span>Ball: ${game.possession}</span></div>`
         : "";
     return `
-<div class="game-card">
+<div class="game-card game-card--live">
   <div class="gc-header">
     <span class="gc-live-info">● LIVE</span>
     <span class="gc-status-badge live">Live</span>
@@ -323,7 +383,7 @@ function renderFinal(game) {
     const awayWon   = scoreAway > scoreHome;
 
     return `
-<div class="game-card">
+<div class="game-card game-card--final">
   <div class="gc-header">
     <span>${channel}</span>
     <span class="gc-status-badge final">Final</span>

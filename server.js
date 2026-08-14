@@ -178,8 +178,10 @@ function isGameWindow() {
     // Must be a date we know has games; skip if future or no games listed
     if (hour < 11) return false;         // Before 11 AM ET, nothing is live
     if (hour >= 24) return false;        // Sanity
-    // Thu night, Sat (Dec/playoffs), Sun all-day, Mon night
+    // Thu night, Sat (Dec/playoffs), Sun all-day, Mon night, Wed/Fri for special games
+    if (day === 3 && hour >= 17) return true;  // Wed ≥5 pm  (intl, Thanksgiving week, Week 1 opener)
     if (day === 4 && hour >= 19) return true;  // Thu ≥7 pm
+    if (day === 5 && hour >= 17) return true;  // Fri ≥5 pm  (preseason, Black Friday, Christmas)
     if (day === 6 && hour >= 12) return true;  // Sat ≥noon
     if (day === 0 && hour >= 12) return true;  // Sun ≥noon
     if (day === 1 && hour >= 19) return true;  // Mon ≥7 pm
@@ -234,17 +236,27 @@ function weekToDate(week, year) {
 async function loadSeasonSchedule() {
     if (!RAPIDAPI_KEY) return;
     const cacheFile = `schedule_${NFL_SEASON}.json`;
-    const cached = readDiskCache(cacheFile);
-    if (cached) {
+    const metaFile  = `schedule_${NFL_SEASON}_meta.json`;
+    const cached    = readDiskCache(cacheFile);
+    const meta      = readDiskCache(metaFile) || { lastFetch: 0 };
+    const hoursSince = (Date.now() - meta.lastFetch) / 3_600_000;
+
+    if (cached && hoursSince < 6) {
+        // Don't re-fetch more often than every 6 hours, even if sparse
+        // (avoids burning 22+ calls per restart when API has no data yet)
+        Object.assign(seasonSchedule, cached);
+        log("info", `Schedule cache: ${Object.keys(seasonSchedule).length} dates (last fetch ${Math.round(hoursSince * 60)}m ago)`);
+        return;
+    }
+    if (cached && hoursSince >= 6) {
         const todayKey = todayStr().replace(/-/g,"");
         const futureDates = Object.keys(cached).filter(d => d >= todayKey);
         if (futureDates.length >= 5) {
             Object.assign(seasonSchedule, cached);
-            log("info", `Schedule cache: ${Object.keys(seasonSchedule).length} dates (${futureDates.length} future)`);
+            log("info", `Schedule cache: ${Object.keys(seasonSchedule).length} dates — still healthy, skipping re-fetch`);
             return;
         }
-        // Cache exists but has too few future dates — invalidate and re-fetch
-        log("info", `Schedule cache stale (only ${futureDates.length} future dates) — re-fetching`);
+        log("info", `Schedule cache sparse (${futureDates.length} future dates) — re-fetching after ${Math.round(hoursSince)}h`);
     }
 
     log("info", "Loading full season schedule from getNFLGamesForWeek...");
@@ -291,6 +303,7 @@ async function loadSeasonSchedule() {
 
     Object.assign(seasonSchedule, result);
     writeDiskCache(cacheFile, result);
+    writeDiskCache(metaFile, { lastFetch: Date.now() });
     log("info", `Season schedule loaded: ${Object.keys(result).length} dates`);
 }
 
@@ -329,6 +342,14 @@ let pollRunning = false;
 async function pollLiveGames() {
     if (pollRunning || !RAPIDAPI_KEY) return;
     if (!isGameWindow()) return;
+
+    // Skip if we've loaded the schedule and today genuinely has no games
+    const todayKey = todayStr().replace(/-/g,"");
+    if (Array.isArray(seasonSchedule[todayKey]) && seasonSchedule[todayKey].length === 0) {
+        log("info", "No games scheduled today — skipping live poll");
+        return;
+    }
+
     pollRunning = true;
 
     // Fetch inactive list once per game day (before first active poll)
@@ -725,6 +746,11 @@ async function loadTeamSchedules() {
     const todayKey = todayStr().replace(/-/g,"");
     const futureDates = Object.keys(seasonSchedule).filter(d => d >= todayKey);
     if (futureDates.length >= 5) { log("info", `Season schedule has ${futureDates.length} future dates — skipping team schedule fetch`); return; }
+    // Cooldown: don't retry more than once every 6 hours to avoid burning 32 calls per restart
+    const teamMetaFile = `team_schedule_${NFL_SEASON}_meta.json`;
+    const teamMeta = readDiskCache(teamMetaFile) || { lastFetch: 0 };
+    const hoursSince = (Date.now() - teamMeta.lastFetch) / 3_600_000;
+    if (hoursSince < 6) { log("info", `Team schedule fetch on cooldown (${Math.round(hoursSince * 60)}m ago) — skipping`); return; }
     log("info", `Season schedule sparse (${futureDates.length} future dates) — loading team schedules (32 calls)...`);
     let logged = false;
     for (const abbr of ALL_TEAM_ABBRS) {
@@ -752,6 +778,7 @@ async function loadTeamSchedules() {
         } catch (err) { log("warn", `getNFLTeamSchedule failed for ${abbr}: ${err.message}`); }
     }
     writeDiskCache(`schedule_${NFL_SEASON}.json`, seasonSchedule);
+    writeDiskCache(teamMetaFile, { lastFetch: Date.now() });
     log("info", `After team schedules: ${Object.keys(seasonSchedule).length} total dates (${Object.keys(seasonSchedule).filter(d=>d>=todayKey).length} future)`);
 }
 
@@ -903,10 +930,16 @@ const server = http.createServer(async (req, res) => {
             const dateStr = parsed.searchParams.get("date") || todayStr();
             const today   = todayStr();
 
-            // Serve from in-memory live state if fresh (< 3 min)
+            // Serve from in-memory live state if fresh
+            // 1 min TTL when a game is live; 10 min otherwise (prevents a browser
+            // auto-refresh every 60s from triggering an API call every 3 min)
             const live = liveState[dateStr];
-            if (live && Date.now() - live.updatedAt < 180_000) {
-                return sendJson(200, { date: dateStr, source: "live", games: live.games });
+            if (live) {
+                const hasLive = live.games.some(g => g.status === "live");
+                const ttl = hasLive ? 60_000 : 600_000;
+                if (Date.now() - live.updatedAt < ttl) {
+                    return sendJson(200, { date: dateStr, source: "live", games: live.games });
+                }
             }
 
             // Future dates — serve from pre-loaded season schedule

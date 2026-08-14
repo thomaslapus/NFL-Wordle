@@ -22,29 +22,84 @@ main {
 
 #cal-track {
     display: flex;
-    gap: 3px;
+    gap: 0;
     overflow-x: auto;
     padding: 10px 12px;
     scrollbar-width: thin;
     scrollbar-color: var(--surface-3) transparent;
-    align-items: stretch;
+    align-items: flex-start;
 }
 
 #cal-track::-webkit-scrollbar { height: 4px; }
 #cal-track::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
 
+/* ── Season groups ── */
+.cal-season-group {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding-right: 12px;
+    margin-right: 12px;
+}
+.cal-season-group:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+
+.cal-season-header {
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    padding: 0 2px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+.cal-weeks-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.cal-week-group {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 3px;
+}
+
+.cal-week-header {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent-2);
+    opacity: 0.75;
+    text-align: center;
+    padding: 0 2px 2px;
+    white-space: nowrap;
+}
+
+.cal-days {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* ── Individual day button ── */
 .cal-day {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 7px 11px;
-    border-radius: 8px;
+    gap: 1px;
+    padding: 5px 9px;
+    border-radius: 7px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: background 0.15s, border-color 0.15s;
-    min-width: 76px;
+    min-width: 72px;
     text-align: center;
     background: rgba(255,255,255,0.02);
 }
@@ -59,30 +114,24 @@ main {
     border-color: rgba(100, 170, 255, 0.38);
 }
 
-.cal-week,
 .cal-week-type {
-    font-size: 0.55rem;
+    font-size: 0.52rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: rgba(255,255,255,0.55);
 }
-
-.cal-week-type.pre  { color: rgba(180,220,255,0.65); }
-.cal-week-type.post { color: rgba(255,200,80,0.75); }
-.cal-week-type.reg  { color: rgba(180,220,255,0.65); }
+.cal-week-type.post { color: rgba(255,200,80,0.8); }
 
 .cal-date,
 .cal-day-label {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #e8f2ff;
     white-space: nowrap;
 }
 
-.cal-day.today .cal-date,
 .cal-day.today .cal-day-label  { color: var(--accent-2); }
-.cal-day.today .cal-week,
 .cal-day.today .cal-week-type  { color: var(--accent-2); opacity: 0.7; }
 
 .cal-sep {
@@ -307,3 +356,28 @@ main {
 /* Winner/loser team highlight on final cards */
 .gc-team.win-side .gc-abbr { color: var(--success); }
 .gc-team.loss-side { opacity: 0.55; }
+
+/* ── Live game card glow ── */
+.game-card--live {
+    border-color: rgba(255, 220, 50, 0.45);
+    box-shadow: 0 0 0 1px rgba(255, 220, 50, 0.2), 0 0 18px rgba(255, 220, 50, 0.3), 0 0 36px rgba(255, 255, 255, 0.05), var(--shadow);
+    animation: card-glow 2s ease-in-out infinite alternate;
+}
+.game-card--live:hover {
+    border-color: rgba(255, 220, 50, 0.65);
+    transform: translateY(-2px);
+}
+@keyframes card-glow {
+    from { box-shadow: 0 0 0 1px rgba(255,220,50,0.18), 0 0 10px rgba(255,220,50,0.2), var(--shadow); }
+    to   { box-shadow: 0 0 0 1px rgba(255,220,50,0.45), 0 0 26px rgba(255,220,50,0.38), 0 0 44px rgba(255,255,255,0.07), var(--shadow); }
+}
+
+/* ── Final game card (muted) ── */
+.game-card--final {
+    opacity: 0.72;
+    filter: grayscale(14%);
+}
+.game-card--final:hover {
+    opacity: 0.88;
+    filter: grayscale(0%);
+}
