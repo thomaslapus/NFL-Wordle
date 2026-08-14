@@ -71,9 +71,40 @@ function writeDiskCache(file, data) {
     fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data), "utf8");
 }
 
+// ── Tank01 daily call budget ──────────────────────────────────────────────────
+const DAILY_CALL_LIMIT = 990;
+
+// Persisted to disk so the count survives server restarts within the same day.
+let callBudget = readDiskCache("api_calls.json") || { date: "", count: 0 };
+
+function utcDateStr() {
+    return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" UTC
+}
+
+function checkDailyLimit() {
+    const today = utcDateStr();
+    if (callBudget.date !== today) {
+        // New day — reset
+        callBudget = { date: today, count: 0 };
+        writeDiskCache("api_calls.json", callBudget);
+        log("info", `Tank01 daily call counter reset for ${today}`);
+    }
+    if (callBudget.count >= DAILY_CALL_LIMIT) {
+        log("error", `Tank01 daily limit hit (${callBudget.count}/${DAILY_CALL_LIMIT}). Blocking call.`);
+        throw new Error(`Daily API call limit of ${DAILY_CALL_LIMIT} reached — resets at UTC midnight`);
+    }
+    callBudget.count++;
+    // Warn when approaching the cap
+    if (callBudget.count === 900) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — approaching limit`);
+    if (callBudget.count === 950) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — 40 remaining`);
+    // Persist every 5 calls so a crash doesn't lose more than 5 calls of count
+    if (callBudget.count % 5 === 0) writeDiskCache("api_calls.json", callBudget);
+}
+
 // ── Tank01 fetch wrapper ──────────────────────────────────────────────────────
 async function tank01Get(endpoint, params = {}) {
     if (!RAPIDAPI_KEY) throw new Error("RAPIDAPI_KEY not set");
+    checkDailyLimit();
     const url = new URL(`${TANK01_BASE}${endpoint}`);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
     log("info", `Tank01 GET ${url.toString()}`);
@@ -577,13 +608,17 @@ const server = http.createServer(async (req, res) => {
         if (urlPath === "/health") {
             return sendJson(200, {
                 status: "ok",
-                keySet:       !!RAPIDAPI_KEY,
-                players:      playerData.length,
-                teamStats:    teamStats    ? teamStats.length    : null,
-                playerStats:  playerStats  ? playerStats.length  : null,
-                liveDates:    Object.keys(liveState),
-                inGameWindow: isGameWindow(),
-                uptime:       Math.floor(process.uptime()),
+                keySet:         !!RAPIDAPI_KEY,
+                players:        playerData.length,
+                teamStats:      teamStats    ? teamStats.length    : null,
+                playerStats:    playerStats  ? playerStats.length  : null,
+                liveDates:      Object.keys(liveState),
+                inGameWindow:   isGameWindow(),
+                uptime:         Math.floor(process.uptime()),
+                apiCallsToday:  callBudget.count,
+                apiCallsLimit:  DAILY_CALL_LIMIT,
+                apiCallsLeft:   Math.max(0, DAILY_CALL_LIMIT - callBudget.count),
+                apiCallsDate:   callBudget.date,
             });
         }
 
