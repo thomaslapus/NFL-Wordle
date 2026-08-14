@@ -77,31 +77,37 @@ function writeDiskCache(file, data) {
 }
 
 // ── Tank01 daily call budget ──────────────────────────────────────────────────
-const DAILY_CALL_LIMIT = 990;
+const DAILY_CALL_LIMIT = 1000; // RapidAPI hard limit per billing window
+const HARD_STOP_LIMIT  = 900;  // suspend all calls at this count
 
-// Billing window resets at 7:05 pm ET each day (not UTC midnight).
-// Returns a stable string identifying the current billing window.
+// Billing window resets at 22:54 UTC each day.
+// Returns "YYYY-MM-DD" for the day the current window started.
 function billingDayStr() {
     const now = new Date();
-    // EDT = UTC-4 (Mar–Nov), EST = UTC-5 (Dec–Feb)
-    const month = now.getUTCMonth();
-    const etOffsetMs = (month >= 2 && month <= 10 ? -4 : -5) * 3600_000;
-    const et = new Date(now.getTime() + etOffsetMs);
-    const etH = et.getUTCHours(), etM = et.getUTCMinutes();
-    // Before 7:05 pm ET → still in yesterday's billing window
-    if (etH < 19 || (etH === 19 && etM < 5)) et.setUTCDate(et.getUTCDate() - 1);
-    const y = et.getUTCFullYear();
-    const m = String(et.getUTCMonth() + 1).padStart(2, "0");
-    const d = String(et.getUTCDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+    const h = now.getUTCHours(), m = now.getUTCMinutes();
+    const base = new Date(now);
+    // Before 22:54 UTC → still in yesterday's window
+    if (h < 22 || (h === 22 && m < 54)) base.setUTCDate(base.getUTCDate() - 1);
+    const y  = base.getUTCFullYear();
+    const mo = String(base.getUTCMonth() + 1).padStart(2, "0");
+    const d  = String(base.getUTCDate()).padStart(2, "0");
+    return `${y}-${mo}-${d}`;
 }
 
-// ── API warning email ─────────────────────────────────────────────────────────
-// Requires env vars: GMAIL_USER and GMAIL_APP_PASSWORD (Gmail App Password).
-// Set these on Render: Dashboard → Environment → add both vars.
-let warningEmailSent = false; // reset each billing window alongside callBudget
+// Returns ISO strings for the start and end of the current billing window.
+function billingWindowTimes() {
+    const [y, mo, d] = billingDayStr().split("-").map(Number);
+    const start = new Date(Date.UTC(y, mo - 1, d, 22, 54, 0));
+    const end   = new Date(start.getTime() + 24 * 3_600_000);
+    return { start: start.toISOString(), end: end.toISOString() };
+}
 
-async function sendApiWarningEmail(count) {
+// ── API warning / hard-stop emails ───────────────────────────────────────────
+// Requires env vars: GMAIL_USER and GMAIL_APP_PASSWORD (Gmail App Password).
+let email500Sent = false; // reset each billing window
+let email900Sent = false; // reset each billing window
+
+async function sendApiWarningEmail(count, isHardStop = false) {
     const gmailUser = process.env.GMAIL_USER;
     const gmailPass = process.env.GMAIL_APP_PASSWORD;
     if (!gmailUser || !gmailPass) {
@@ -110,66 +116,102 @@ async function sendApiWarningEmail(count) {
     }
     const appUrl    = (process.env.APP_URL || "").replace(/\/$/, "");
     const healthUrl = appUrl ? `${appUrl}/health` : "/health";
-    const window    = billingDayStr();
-    const remaining = DAILY_CALL_LIMIT - count;
+    const { start, end } = billingWindowTimes();
+    const remaining = Math.max(0, DAILY_CALL_LIMIT - count);
 
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: gmailUser, pass: gmailPass },
     });
 
+    const headline = isHardStop
+        ? "🛑 API Hard Stop — Mid Stats"
+        : "⚠️ API Limit Warning — Mid Stats";
+    const subtitle = isHardStop
+        ? `All Tank01 API calls have been suspended. The server will resume automatically when the billing window resets at 22:54 UTC.`
+        : `Your Tank01 NFL API usage has hit the ${count}-call threshold.`;
+    const accent = isHardStop ? "#c0392b" : "#e67e22";
+
     const html = `
-<div style="font-family:system-ui,sans-serif;max-width:520px;color:#1a1a1a">
-  <h2 style="color:#c0392b;margin-bottom:4px">⚠️ API Limit Warning — Mid Stats</h2>
-  <p style="color:#555;margin-top:0">Your Tank01 NFL API usage has hit the 900-call threshold.</p>
+<div style="font-family:system-ui,sans-serif;max-width:540px;color:#1a1a1a">
+  <h2 style="color:${accent};margin-bottom:4px">${headline}</h2>
+  <p style="color:#555;margin-top:0">${subtitle}</p>
   <table style="border-collapse:collapse;width:100%;margin:16px 0">
-    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Calls used</td><td style="padding:8px 12px">${count}</td></tr>
-    <tr><td style="padding:8px 12px;font-weight:600">Daily limit</td><td style="padding:8px 12px">${DAILY_CALL_LIMIT}</td></tr>
-    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Remaining</td><td style="padding:8px 12px;color:${remaining < 50 ? "#c0392b" : "#27ae60"};font-weight:700">${remaining}</td></tr>
-    <tr><td style="padding:8px 12px;font-weight:600">Billing window</td><td style="padding:8px 12px">${window}</td></tr>
-    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Resets at</td><td style="padding:8px 12px">7:05 pm ET</td></tr>
+    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Calls used</td><td style="padding:8px 12px;font-weight:700;color:${isHardStop ? "#c0392b" : "#333"}">${count}</td></tr>
+    <tr><td style="padding:8px 12px;font-weight:600">Limit</td><td style="padding:8px 12px">${DAILY_CALL_LIMIT}</td></tr>
+    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Remaining</td><td style="padding:8px 12px;color:${remaining < 100 ? "#c0392b" : "#27ae60"};font-weight:700">${remaining}</td></tr>
+    <tr><td style="padding:8px 12px;font-weight:600">Window start</td><td style="padding:8px 12px">${start}</td></tr>
+    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Window end</td><td style="padding:8px 12px;font-weight:600">${end}</td></tr>
+    <tr><td style="padding:8px 12px;font-weight:600">Resets at</td><td style="padding:8px 12px">22:54 UTC daily</td></tr>
   </table>
   <a href="${healthUrl}" style="display:inline-block;background:#2980b9;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">View Server Health →</a>
 </div>`;
+
+    const subject = isHardStop
+        ? `🛑 API Hard Stop — ${count}/${DAILY_CALL_LIMIT} calls, all requests suspended`
+        : `⚠️ API Warning — ${count}/${DAILY_CALL_LIMIT} calls used`;
 
     try {
         await transporter.sendMail({
             from:    `"Mid Stats" <${gmailUser}>`,
             to:      "thomaslap98@gmail.com",
-            subject: `⚠️ API Limit Warning — ${count}/${DAILY_CALL_LIMIT} calls used`,
+            subject,
             html,
         });
-        log("info", `API warning email sent (${count}/${DAILY_CALL_LIMIT} calls used)`);
+        log("info", `API ${isHardStop ? "hard-stop" : "warning"} email sent (${count}/${DAILY_CALL_LIMIT} calls)`);
     } catch (err) {
-        log("error", `Failed to send API warning email: ${err.message}`);
+        log("error", `Failed to send API email: ${err.message}`);
     }
 }
 
 // Persisted to disk so the count survives server restarts within the same billing window.
-let callBudget = readDiskCache("api_calls.json") || { date: "", count: 0 };
+let callBudget    = readDiskCache("api_calls.json") || { date: "", count: 0 };
+let apiHardStopped = false; // set true at HARD_STOP_LIMIT; cleared on billing window reset
 
 function checkDailyLimit() {
     const today = billingDayStr();
     if (callBudget.date !== today) {
-        // New billing window — reset
-        callBudget       = { date: today, count: 0 };
-        warningEmailSent = false;
+        // New billing window — reset everything
+        callBudget     = { date: today, count: 0 };
+        email500Sent   = false;
+        email900Sent   = false;
+        apiHardStopped = false;
         writeDiskCache("api_calls.json", callBudget);
-        log("info", `Tank01 billing window reset for ${today} (resets 7:05 pm ET)`);
+        const { start, end } = billingWindowTimes();
+        log("info", `Tank01 billing window reset — ${start} → ${end}`);
     }
+
+    // Hard stop: block all calls until window resets
+    if (apiHardStopped) {
+        log("error", `API hard stopped at ${callBudget.count} calls — suspended until 22:54 UTC`);
+        throw new Error("API calls suspended until billing window resets at 22:54 UTC");
+    }
+
     if (callBudget.count >= DAILY_CALL_LIMIT) {
-        log("error", `Tank01 daily limit hit (${callBudget.count}/${DAILY_CALL_LIMIT}). Blocking call.`);
-        throw new Error(`Daily API call limit of ${DAILY_CALL_LIMIT} reached — resets at 7:05 pm ET`);
+        log("error", `Tank01 absolute limit hit (${callBudget.count}/${DAILY_CALL_LIMIT}). Blocking call.`);
+        throw new Error(`Daily API call limit of ${DAILY_CALL_LIMIT} reached — resets at 22:54 UTC`);
     }
+
     callBudget.count++;
-    if (callBudget.count === 900) {
-        log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — approaching limit`);
-        if (!warningEmailSent) {
-            warningEmailSent = true;
-            sendApiWarningEmail(callBudget.count).catch(err => log("error", `Email error: ${err.message}`));
-        }
+
+    // 500-call warning email
+    if (callBudget.count === 500 && !email500Sent) {
+        email500Sent = true;
+        log("warn", `Tank01 calls: ${callBudget.count}/${DAILY_CALL_LIMIT} — sending 500-call warning`);
+        sendApiWarningEmail(callBudget.count, false).catch(err => log("error", `Email error: ${err.message}`));
     }
-    if (callBudget.count === 950) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — 40 remaining`);
+
+    // 900-call hard stop + email
+    if (callBudget.count >= HARD_STOP_LIMIT && !apiHardStopped) {
+        apiHardStopped = true;
+        log("warn", `Tank01 API hard stopped at ${callBudget.count}/${DAILY_CALL_LIMIT} — all calls suspended until 22:54 UTC`);
+        if (!email900Sent) {
+            email900Sent = true;
+            sendApiWarningEmail(callBudget.count, true).catch(err => log("error", `Email error: ${err.message}`));
+        }
+        writeDiskCache("api_calls.json", callBudget);
+    }
+
     // Persist every 5 calls so a crash doesn't lose more than 5
     if (callBudget.count % 5 === 0) writeDiskCache("api_calls.json", callBudget);
 }
@@ -944,19 +986,22 @@ const server = http.createServer(async (req, res) => {
 
         // ── /health ──────────────────────────────────────────────────
         if (urlPath === "/health") {
+            const { start: winStart, end: winEnd } = billingWindowTimes();
             return sendJson(200, {
                 status: "ok",
-                keySet:         !!RAPIDAPI_KEY,
-                players:        playerData.length,
-                teamStats:      teamStats    ? teamStats.length    : null,
-                playerStats:    playerStats  ? playerStats.length  : null,
-                liveDates:      Object.keys(liveState),
-                inGameWindow:   isGameWindow(),
-                uptime:         Math.floor(process.uptime()),
-                apiCallsToday:  callBudget.count,
-                apiCallsLimit:  DAILY_CALL_LIMIT,
-                apiCallsLeft:   Math.max(0, DAILY_CALL_LIMIT - callBudget.count),
-                apiCallsDate:   callBudget.date,
+                keySet:              !!RAPIDAPI_KEY,
+                players:             playerData.length,
+                teamStats:           teamStats    ? teamStats.length    : null,
+                playerStats:         playerStats  ? playerStats.length  : null,
+                liveDates:           Object.keys(liveState),
+                inGameWindow:        isGameWindow(),
+                uptime:              Math.floor(process.uptime()),
+                apiCallsUsed:        callBudget.count,
+                apiCallsLimit:       DAILY_CALL_LIMIT,
+                apiCallsLeft:        Math.max(0, DAILY_CALL_LIMIT - callBudget.count),
+                apiHardStopped,
+                billingWindowStart:  winStart,
+                billingWindowEnd:    winEnd,
             });
         }
 
