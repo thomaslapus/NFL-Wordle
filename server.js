@@ -78,30 +78,50 @@ function writeDiskCache(file, data) {
 // ── Tank01 daily call budget ──────────────────────────────────────────────────
 const DAILY_CALL_LIMIT = 990;
 
-// Persisted to disk so the count survives server restarts within the same day.
-let callBudget = readDiskCache("api_calls.json") || { date: "", count: 0 };
+// Hard stop: block ALL Tank01 calls until this UTC timestamp (7:05 pm ET on 2026-08-14).
+// Remove or zero this out once the new billing window is active.
+const HARD_STOP_UNTIL = new Date("2026-08-14T23:05:00Z");
 
-function utcDateStr() {
-    return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" UTC
+// Billing window resets at 7:05 pm ET each day (not UTC midnight).
+// Returns a stable string identifying the current billing window.
+function billingDayStr() {
+    const now = new Date();
+    // EDT = UTC-4 (Mar–Nov), EST = UTC-5 (Dec–Feb)
+    const month = now.getUTCMonth();
+    const etOffsetMs = (month >= 2 && month <= 10 ? -4 : -5) * 3600_000;
+    const et = new Date(now.getTime() + etOffsetMs);
+    const etH = et.getUTCHours(), etM = et.getUTCMinutes();
+    // Before 7:05 pm ET → still in yesterday's billing window
+    if (etH < 19 || (etH === 19 && etM < 5)) et.setUTCDate(et.getUTCDate() - 1);
+    const y = et.getUTCFullYear();
+    const m = String(et.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(et.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
 }
 
+// Persisted to disk so the count survives server restarts within the same billing window.
+let callBudget = readDiskCache("api_calls.json") || { date: "", count: 0 };
+
 function checkDailyLimit() {
-    const today = utcDateStr();
+    // Hard stop until billing window resets at 7:05 pm ET
+    if (Date.now() < HARD_STOP_UNTIL.getTime()) {
+        throw new Error(`Tank01 calls suspended until 7:05 pm ET (${HARD_STOP_UNTIL.toISOString()})`);
+    }
+    const today = billingDayStr();
     if (callBudget.date !== today) {
-        // New day — reset
+        // New billing window — reset
         callBudget = { date: today, count: 0 };
         writeDiskCache("api_calls.json", callBudget);
-        log("info", `Tank01 daily call counter reset for ${today}`);
+        log("info", `Tank01 billing window reset for ${today} (resets 7:05 pm ET)`);
     }
     if (callBudget.count >= DAILY_CALL_LIMIT) {
         log("error", `Tank01 daily limit hit (${callBudget.count}/${DAILY_CALL_LIMIT}). Blocking call.`);
-        throw new Error(`Daily API call limit of ${DAILY_CALL_LIMIT} reached — resets at UTC midnight`);
+        throw new Error(`Daily API call limit of ${DAILY_CALL_LIMIT} reached — resets at 7:05 pm ET`);
     }
     callBudget.count++;
-    // Warn when approaching the cap
     if (callBudget.count === 900) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — approaching limit`);
     if (callBudget.count === 950) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — 40 remaining`);
-    // Persist every 5 calls so a crash doesn't lose more than 5 calls of count
+    // Persist every 5 calls so a crash doesn't lose more than 5
     if (callBudget.count % 5 === 0) writeDiskCache("api_calls.json", callBudget);
 }
 

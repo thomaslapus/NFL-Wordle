@@ -239,14 +239,22 @@ async function showDay(idx) {
     }
 }
 
+// Format "1:00p ET" or "1:00pm ET" → "1:00pm ET"
+function formatKickoff(t) {
+    if (!t) return "";
+    // Replace trailing single 'p'/'a' (not already followed by 'm') with 'pm'/'am'
+    return String(t).replace(/(\d)(p|a)(?!m)(\s|$)/gi, (_, d, ap, tail) => `${d}${ap.toLowerCase()}m${tail}`);
+}
+
 function kickoffToMinutes(t) {
     if (!t) return 9999;
-    const m = String(t).match(/(\d+):(\d+)\s*(AM|PM)/i);
+    // Match both "1:00pm" and "1:00p" formats
+    const m = String(t).match(/(\d+):(\d+)\s*(am|pm|a|p)\b/i);
     if (!m) return 9999;
     let h = parseInt(m[1]), min = parseInt(m[2]);
-    const ap = m[3].toUpperCase();
-    if (ap === "PM" && h !== 12) h += 12;
-    if (ap === "AM" && h === 12) h = 0;
+    const ap = m[3][0].toLowerCase();
+    if (ap === "p" && h !== 12) h += 12;
+    if (ap === "a" && h === 12) h = 0;
     return h * 60 + min;
 }
 
@@ -298,7 +306,7 @@ function renderUpcoming(game) {
     return `
 <div class="game-card">
   <div class="gc-header">
-    <span>${game.kickoff}${channel}</span>
+    <span>${formatKickoff(game.kickoff)}${channel}</span>
     <span class="gc-status-badge upcoming">Upcoming</span>
   </div>
   <div class="gc-body">
