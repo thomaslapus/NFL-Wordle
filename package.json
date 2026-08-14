@@ -10,5 +10,8 @@
   "keywords": ["nfl", "wordle", "game"],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
 }

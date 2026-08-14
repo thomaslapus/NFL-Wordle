@@ -1,7 +1,8 @@
 "use strict";
-const http = require("http");
-const fs   = require("fs");
-const path = require("path");
+const http       = require("http");
+const fs         = require("fs");
+const path       = require("path");
+const nodemailer = require("nodemailer");
 
 const PORT = process.env.PORT || 3000;
 
@@ -95,6 +96,55 @@ function billingDayStr() {
     return `${y}-${m}-${d}`;
 }
 
+// ── API warning email ─────────────────────────────────────────────────────────
+// Requires env vars: GMAIL_USER and GMAIL_APP_PASSWORD (Gmail App Password).
+// Set these on Render: Dashboard → Environment → add both vars.
+let warningEmailSent = false; // reset each billing window alongside callBudget
+
+async function sendApiWarningEmail(count) {
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    if (!gmailUser || !gmailPass) {
+        log("warn", "API warning email skipped — GMAIL_USER / GMAIL_APP_PASSWORD not set");
+        return;
+    }
+    const appUrl    = (process.env.APP_URL || "").replace(/\/$/, "");
+    const healthUrl = appUrl ? `${appUrl}/health` : "/health";
+    const window    = billingDayStr();
+    const remaining = DAILY_CALL_LIMIT - count;
+
+    const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user: gmailUser, pass: gmailPass },
+    });
+
+    const html = `
+<div style="font-family:system-ui,sans-serif;max-width:520px;color:#1a1a1a">
+  <h2 style="color:#c0392b;margin-bottom:4px">⚠️ API Limit Warning — Mid Stats</h2>
+  <p style="color:#555;margin-top:0">Your Tank01 NFL API usage has hit the 900-call threshold.</p>
+  <table style="border-collapse:collapse;width:100%;margin:16px 0">
+    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Calls used</td><td style="padding:8px 12px">${count}</td></tr>
+    <tr><td style="padding:8px 12px;font-weight:600">Daily limit</td><td style="padding:8px 12px">${DAILY_CALL_LIMIT}</td></tr>
+    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Remaining</td><td style="padding:8px 12px;color:${remaining < 50 ? "#c0392b" : "#27ae60"};font-weight:700">${remaining}</td></tr>
+    <tr><td style="padding:8px 12px;font-weight:600">Billing window</td><td style="padding:8px 12px">${window}</td></tr>
+    <tr style="background:#f5f5f5"><td style="padding:8px 12px;font-weight:600">Resets at</td><td style="padding:8px 12px">7:05 pm ET</td></tr>
+  </table>
+  <a href="${healthUrl}" style="display:inline-block;background:#2980b9;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">View Server Health →</a>
+</div>`;
+
+    try {
+        await transporter.sendMail({
+            from:    `"Mid Stats" <${gmailUser}>`,
+            to:      "thomaslap98@gmail.com",
+            subject: `⚠️ API Limit Warning — ${count}/${DAILY_CALL_LIMIT} calls used`,
+            html,
+        });
+        log("info", `API warning email sent (${count}/${DAILY_CALL_LIMIT} calls used)`);
+    } catch (err) {
+        log("error", `Failed to send API warning email: ${err.message}`);
+    }
+}
+
 // Persisted to disk so the count survives server restarts within the same billing window.
 let callBudget = readDiskCache("api_calls.json") || { date: "", count: 0 };
 
@@ -102,7 +152,8 @@ function checkDailyLimit() {
     const today = billingDayStr();
     if (callBudget.date !== today) {
         // New billing window — reset
-        callBudget = { date: today, count: 0 };
+        callBudget       = { date: today, count: 0 };
+        warningEmailSent = false;
         writeDiskCache("api_calls.json", callBudget);
         log("info", `Tank01 billing window reset for ${today} (resets 7:05 pm ET)`);
     }
@@ -111,7 +162,13 @@ function checkDailyLimit() {
         throw new Error(`Daily API call limit of ${DAILY_CALL_LIMIT} reached — resets at 7:05 pm ET`);
     }
     callBudget.count++;
-    if (callBudget.count === 900) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — approaching limit`);
+    if (callBudget.count === 900) {
+        log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — approaching limit`);
+        if (!warningEmailSent) {
+            warningEmailSent = true;
+            sendApiWarningEmail(callBudget.count).catch(err => log("error", `Email error: ${err.message}`));
+        }
+    }
     if (callBudget.count === 950) log("warn", `Tank01 calls today: ${callBudget.count}/${DAILY_CALL_LIMIT} — 40 remaining`);
     // Persist every 5 calls so a crash doesn't lose more than 5
     if (callBudget.count % 5 === 0) writeDiskCache("api_calls.json", callBudget);
