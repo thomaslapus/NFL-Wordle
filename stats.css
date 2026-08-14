@@ -283,8 +283,24 @@ main {
     background: var(--surface-2);
 }
 
-.compare-table .player-name-cell { font-weight: 600; color: var(--text); white-space: nowrap; }
+.compare-table .player-name-cell {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .compare-table .player-team-cell { color: var(--text-dim); font-size: 0.8rem; }
+
+.compare-headshot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+}
 
 .stat-cell {
     text-align: center;

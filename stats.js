@@ -379,8 +379,12 @@ function renderCompareTable() {
         </tr></thead><tbody>`;
 
     rows.forEach(row => {
+        const shotSrc = ESPN_HEADSHOT(row.espnId);
         html += `<tr>
-            <td class="player-name-cell">${row.name}</td>
+            <td class="player-name-cell">
+                ${shotSrc ? `<img src="${shotSrc}" class="compare-headshot" onerror="this.style.display='none'">` : ""}
+                <span>${row.name}</span>
+            </td>
             <td class="player-team-cell">
                 <img src="${ESPN_LOGO(row.team)}"
                      style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:4px"
@@ -404,6 +408,10 @@ function renderCompareTable() {
     html += `</tbody></table></div>`;
     wrap.innerHTML = html;
 }
+
+const ESPN_HEADSHOT = id => id
+    ? `https://a.espncdn.com/i/headshots/nfl/players/full/${id}.png`
+    : "";
 
 // ── Scatter chart renderer ────────────────────────────────────────────────────
 function renderScatter(container, { title, data, xKey, xLabel, yKey, yLabel, nameKey, logoFn }) {

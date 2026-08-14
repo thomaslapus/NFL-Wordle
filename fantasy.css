@@ -321,45 +321,88 @@ main {
 
 .rank-group.collapsed .rank-group-body { max-height: 0; }
 
-/* ── Player rank row ── */
-.rank-row {
-    display: grid;
-    grid-template-columns: 28px 1fr 50px 56px;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 18px;
-    border-top: 1px solid var(--border);
-    cursor: pointer;
-    transition: background 0.13s;
-    font-size: 0.82rem;
-}
-
-.rank-row:hover { background: rgba(255,255,255,0.03); }
-
+/* ── Shared rank number / pos badge ── */
 .rank-num {
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--text-dim);
     text-align: center;
 }
-
 .rank-num.top3 { color: var(--gold); }
+.rank-name { font-weight: 600; color: var(--text); font-size: 0.83rem; }
+.rank-team { font-size: 0.67rem; color: var(--text-dim); }
 
-.rank-name { font-weight: 600; color: var(--text); }
-.rank-team { font-size: 0.68rem; color: var(--text-dim); }
-.rank-inline-stat { opacity: 0.7; margin-left: 2px; }
-.rank-pts  { font-weight: 700; color: var(--accent-2); text-align: right; font-size: 0.85rem; }
-
-/* Expanded player stats */
-.rank-row-detail {
-    display: none;
-    padding: 12px 18px 14px 54px;
-    background: rgba(8,18,40,0.35);
-    border-top: 1px solid var(--border);
+/* ── Player headshot ── */
+.rank-headshot {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255,255,255,0.06);
+    display: block;
+}
+.rank-headshot-blank {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
 }
 
-.rank-row-detail.open { display: block; }
+/* ── Rankings table ── */
+.rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.rankings-table thead tr {
+    background: rgba(255,255,255,0.04);
+    border-bottom: 2px solid var(--border);
+}
+.rankings-table th {
+    padding: 8px 10px;
+    text-align: right;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+.rankings-table th.rt-player,
+.rankings-table th.rt-rank,
+.rankings-table th.rt-photo,
+.rankings-table th.rt-pos { text-align: left; }
 
+.rankings-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+}
+.rankings-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+.rankings-table td {
+    padding: 7px 10px;
+    text-align: right;
+    color: var(--text);
+    white-space: nowrap;
+}
+.rankings-table td.rt-rank,
+.rankings-table td.rt-photo,
+.rankings-table td.rt-player,
+.rankings-table td.rt-pos { text-align: left; }
+
+.rt-rank  { width: 32px; padding-left: 14px !important; }
+.rt-photo { width: 44px; padding: 5px 6px !important; }
+.rt-player { min-width: 140px; }
+.rt-pos   { width: 44px; }
+.rt-num   { width: 72px; font-variant-numeric: tabular-nums; }
+
+/* FPPG column highlighted */
+.rankings-table td.rt-num:first-of-type {
+    font-weight: 700;
+    color: var(--accent-2);
+}
+
+/* Expanded detail grid (used by weekly list) */
 .detail-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));

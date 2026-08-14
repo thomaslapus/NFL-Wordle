@@ -185,7 +185,7 @@ function normalizeGame(raw) {
 
 // ── Full-season schedule cache ────────────────────────────────────────────────
 // Keyed by YYYYMMDD → array of normalized game objects (upcoming, no scores).
-// Loaded at startup from getWeeklyNFLSchedule (one call per week).
+// Loaded at startup from getNFLGamesForWeek (one call per week).
 const seasonSchedule = {};
 
 // Maps an NFL week number to approximate start date for validation
@@ -206,7 +206,7 @@ async function loadSeasonSchedule() {
         return;
     }
 
-    log("info", "Loading full season schedule from getWeeklyNFLSchedule...");
+    log("info", "Loading full season schedule from getNFLGamesForWeek...");
     const result = {};
     // Preseason weeks 1-4, regular season weeks 1-18, then playoffs separately
     const weeks = [
@@ -223,14 +223,14 @@ async function loadSeasonSchedule() {
 
     for (const { gameWeek, seasonType } of weeks) {
         try {
-            const body = await tank01Get("/getWeeklyNFLSchedule", {
+            const body = await tank01Get("/getNFLGamesForWeek", {
                 gameWeek,
                 gameYear: NFL_SEASON,
                 seasonType,
             });
             // Log shape on first call
             if (Object.keys(result).length === 0) {
-                log("info", `getWeeklyNFLSchedule keys: ${Object.keys(body ?? {}).join(", ")}`);
+                log("info", `getNFLGamesForWeek keys: ${Object.keys(body ?? {}).join(", ")}`);
             }
             const raw = Array.isArray(body) ? body
                 : (body?.schedule ?? body?.games ?? Object.values(body ?? {}));
@@ -434,6 +434,7 @@ async function buildPlayerStats(teams) {
                 const g = games || 1;
                 all.push({
                     id:       p.playerID ?? p.id,
+                    espnId:   p.espnID   ?? p.espnId ?? "",
                     name:     p.longName  ?? p.fullName ?? p.name ?? "",
                     pos, team: team.abbr, teamName: team.name,
                     teamLogo: team.logo,

@@ -133,6 +133,7 @@ function apiPlayerToFantasy(p) {
         name:      p.name,
         pos:       p.pos === "FB" ? "RB" : p.pos,
         team:      p.team,
+        espnId:    p.espnId ?? "",
         rawPts:    +rawPts,
         recSeason: p.recRec || 0,
         g:         p.games || 1,
@@ -197,62 +198,95 @@ let lastPosTab    = { last: "QB", proj: "QB" };
 /* ── Ranking renderer ───────────────────────────────────────── */
 const POS_COLOR = { QB:"qb", RB:"rb", WR:"wr", TE:"te" };
 
-function rankInlineStat(p) {
-    const s = p.stats || {};
-    if (p.pos === "QB") {
-        const yds = s["Pass Yds"] || "—";
-        const td  = s["Pass TD"]  || 0;
-        const pct = s["Comp%"]    || "";
-        const rush = parseInt(s["Rush Yds"]) > 0 ? ` · ${s["Rush Yds"]} rush` : "";
-        return ` · ${yds} yds · ${td} TD${rush} · ${pct}`;
-    }
-    if (p.pos === "RB") {
-        const yds = s["Rush Yds"] || "—";
-        const td  = (parseInt(s["Rush TD"]||0) + parseInt(s["Rec TD"]||0)) || 0;
-        const rec = s["Rec"] || 0;
-        return ` · ${yds} rush · ${rec} rec · ${td} TD`;
-    }
-    if (p.pos === "WR" || p.pos === "TE") {
-        const yds = s["Rec Yds"] || "—";
-        const rec = s["Rec"]     || "—";
-        const td  = s["Rec TD"]  || 0;
-        return ` · ${yds} yds · ${rec} rec · ${td} TD`;
-    }
-    return "";
+// Column definitions per position for the rankings table
+function getRankingCols(pos) {
+    const base = [
+        { label:"FPPG",     fn: p => p.fppg.toFixed(1) },
+        { label:"G",        fn: p => p.g ?? "—" },
+    ];
+    const qb = [
+        { label:"Comp%",    fn: p => p.stats["Comp%"]    ?? "—" },
+        { label:"Pass Yds", fn: p => p.stats["Pass Yds"] ?? "—" },
+        { label:"Pass TD",  fn: p => p.stats["Pass TD"]  ?? "—" },
+        { label:"INT",      fn: p => p.stats["INT"]      ?? "—" },
+        { label:"Rush Yds", fn: p => p.stats["Rush Yds"] ?? "—" },
+        { label:"Rush TD",  fn: p => p.stats["Rush TD"]  ?? "—" },
+    ];
+    const rb = [
+        { label:"Carries",  fn: p => p.stats["Rush Att"] ?? "—" },
+        { label:"Rush Yds", fn: p => p.stats["Rush Yds"] ?? "—" },
+        { label:"Rush TD",  fn: p => p.stats["Rush TD"]  ?? "—" },
+        { label:"Rec",      fn: p => p.stats["Rec"]      ?? "—" },
+        { label:"Rec Yds",  fn: p => p.stats["Rec Yds"]  ?? "—" },
+        { label:"Rec TD",   fn: p => p.stats["Rec TD"]   ?? "—" },
+    ];
+    const wr = [
+        { label:"Tgts",     fn: p => p.stats["Tgts"]    ?? "—" },
+        { label:"Rec",      fn: p => p.stats["Rec"]      ?? "—" },
+        { label:"Rec Yds",  fn: p => p.stats["Rec Yds"]  ?? "—" },
+        { label:"Rec TD",   fn: p => p.stats["Rec TD"]   ?? "—" },
+        { label:"YPR",      fn: p => p.stats["YPR"]      ?? "—" },
+        { label:"Catch%",   fn: p => p.stats["Catch%"]   ?? "—" },
+    ];
+    const all = [
+        { label:"Pass Yds", fn: p => p.stats["Pass Yds"] ?? "—" },
+        { label:"Pass TD",  fn: p => p.stats["Pass TD"]  ?? "—" },
+        { label:"Rush Yds", fn: p => p.stats["Rush Yds"] ?? "—" },
+        { label:"Rush TD",  fn: p => p.stats["Rush TD"]  ?? "—" },
+        { label:"Rec",      fn: p => p.stats["Rec"]      ?? "—" },
+        { label:"Rec Yds",  fn: p => p.stats["Rec Yds"]  ?? "—" },
+        { label:"Rec TD",   fn: p => p.stats["Rec TD"]   ?? "—" },
+    ];
+    return { QB:[...base,...qb], RB:[...base,...rb], WR:[...base,...wr], TE:[...base,...wr] }[pos] ?? [...base,...all];
 }
 
 function renderRankings() {
-    const body = document.getElementById("rankings-all-body");
-    if (!body) return;
+    const container = document.getElementById("rankings-all-body");
+    if (!container) return;
 
     let list = players.filter(p => currentPos === "ALL" || p.pos === currentPos);
-
-    // Compute adjusted fppg and sort
     list = list
         .map(p => ({ ...p, fppg: computeFppg(p, currentPPR) }))
         .sort((a, b) => b.fppg - a.fppg);
 
-    body.innerHTML = list.map((p, i) => {
-        const detailId = `rank-detail-${i}`;
-        const numCls   = i < 3 ? "top3" : "";
-        const statHtml = Object.entries(p.stats)
-            .map(([k, v]) => `<div class="detail-stat"><span class="detail-stat-val">${v}</span><span class="detail-stat-lbl">${k}</span></div>`)
-            .join("");
-        const inlineStat = rankInlineStat(p);
-        return `
-<div class="rank-row" onclick="toggleDetail('${detailId}')">
-  <span class="rank-num ${numCls}">${i + 1}</span>
-  <div>
+    if (!list.length) {
+        container.innerHTML = `<p class="loading-note" style="padding:16px">No data available</p>`;
+        return;
+    }
+
+    const cols = getRankingCols(currentPos);
+
+    let html = `<div class="table-scroll"><table class="rankings-table">
+<thead><tr>
+  <th class="rt-rank">#</th>
+  <th class="rt-photo"></th>
+  <th class="rt-player">Player</th>
+  <th class="rt-pos">Pos</th>
+  ${cols.map(c => `<th class="rt-num">${c.label}</th>`).join("")}
+</tr></thead><tbody>`;
+
+    list.forEach((p, i) => {
+        const shotSrc = p.espnId
+            ? `https://a.espncdn.com/i/headshots/nfl/players/full/${p.espnId}.png`
+            : "";
+        const shot = shotSrc
+            ? `<img class="rank-headshot" src="${shotSrc}" onerror="this.style.display='none'">`
+            : `<div class="rank-headshot-blank"></div>`;
+        const numCls = i < 3 ? "top3" : "";
+        html += `<tr>
+  <td class="rt-rank"><span class="rank-num ${numCls}">${i + 1}</span></td>
+  <td class="rt-photo">${shot}</td>
+  <td class="rt-player">
     <div class="rank-name">${p.name}</div>
-    <div class="rank-team">${p.team}<span class="rank-inline-stat">${inlineStat}</span></div>
-  </div>
-  <span class="rg-pos ${POS_COLOR[p.pos]}" style="font-size:.6rem">${p.pos}</span>
-  <span class="rank-pts">${p.fppg} <span style="font-size:.6rem;color:var(--text-dim)">fppg</span></span>
-</div>
-<div class="rank-row-detail" id="${detailId}">
-  <div class="detail-grid">${statHtml}</div>
-</div>`;
-    }).join("");
+    <div class="rank-team">${p.team}</div>
+  </td>
+  <td class="rt-pos"><span class="rg-pos ${POS_COLOR[p.pos]}">${p.pos}</span></td>
+  ${cols.map(c => `<td class="rt-num">${c.fn(p)}</td>`).join("")}
+</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
 }
 
 function updateScoringLabel() {
