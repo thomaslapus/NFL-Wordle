@@ -285,6 +285,10 @@ function normalizeGame(raw) {
         quarter:    pickStr(raw, "currentPeriod", "quarter", "period", "qtr") || null,
         clock:      pickStr(raw, "gameClock",      "clock",   "timeLeft") || null,
         possession: (pickStr(raw, "teamPosBall", "possession", "ballOn") || "").toUpperCase() || null,
+        down:       pickStr(raw, "down") || null,
+        yardsToGo:  pickStr(raw, "yardsToGo", "yards_to_go", "distance") || null,
+        yardLine:   pickStr(raw, "yardLine",  "yard_line",   "scrimmage") || null,
+        lastPlay:   pickStr(raw, "lastPlay",  "last_play",   "currentPlay", "playDescription") || null,
         lastUpdated: Date.now(),
     };
 }
@@ -396,9 +400,19 @@ async function fetchGamesForDate(dateStr) {
 // ── Fetch detailed box score for a single live game ───────────────────────────
 // Called only when a game is live and the scoreboard response lacks quarter/clock.
 async function fetchBoxScore(gameID) {
-    const body = await tank01Get("/getNFLBoxScore", { gameID, playByPlay: "false" });
-    const raw  = body?.gameInfo ?? body?.game ?? body ?? {};
-    return normalizeGame({ ...raw, gameID });
+    const body  = await tank01Get("/getNFLBoxScore", { gameID, playByPlay: "true" });
+    const info  = body?.gameInfo ?? body?.game ?? body ?? {};
+    const plays = Array.isArray(body?.plays) ? body.plays : [];
+    const game  = normalizeGame({ ...info, gameID });
+    // Fill lastPlay / field position from last play in the plays array if not in gameInfo
+    if (plays.length > 0) {
+        const lp = plays[plays.length - 1];
+        if (!game.lastPlay)   game.lastPlay  = pickStr(lp, "description", "playDescription", "desc") || null;
+        if (!game.down)       game.down      = pickStr(lp, "down") || null;
+        if (!game.yardsToGo)  game.yardsToGo = pickStr(lp, "yardsToGo", "yards_to_go") || null;
+        if (!game.yardLine)   game.yardLine  = pickStr(lp, "yardLine",  "yard_line") || null;
+    }
+    return game;
 }
 
 // ── Live game poller ──────────────────────────────────────────────────────────
@@ -429,12 +443,20 @@ async function pollLiveGames() {
         const games = await fetchGamesForDate(today);
         liveState[today] = { updatedAt: Date.now(), games };
 
-        // Enrich up to 4 live games with quarter/clock detail
-        const liveGames = games.filter(g => g.status === "live" && !g.quarter).slice(0, 4);
+        // Enrich up to 4 live games with box score detail (quarter, clock, field position, last play)
+        const liveGames = games.filter(g => g.status === "live").slice(0, 4);
         for (const g of liveGames) {
             try {
                 const detail = await fetchBoxScore(g.gameID);
-                Object.assign(g, { quarter: detail.quarter, clock: detail.clock, possession: detail.possession });
+                Object.assign(g, {
+                    quarter:   detail.quarter,
+                    clock:     detail.clock,
+                    possession:detail.possession,
+                    down:      detail.down,
+                    yardsToGo: detail.yardsToGo,
+                    yardLine:  detail.yardLine,
+                    lastPlay:  detail.lastPlay,
+                });
             } catch (err) {
                 log("warn", `Box score failed for ${g.gameID}: ${err.message}`);
             }

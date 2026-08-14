@@ -134,6 +134,7 @@ const SCHEDULE_DATES = [
 // ── State ─────────────────────────────────────────────────────────────────────
 let activeIdx    = 0;
 let liveRefreshInterval = null;
+const expandedGameIDs = new Set(); // persists across 60-s re-renders
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
 function buildCalendar() {
@@ -290,6 +291,16 @@ async function renderGamesForDate(dateStr, grid) {
         // Chronological order by kickoff time
         const sorted = [...games].sort((a, b) => kickoffToMinutes(a.kickoff) - kickoffToMinutes(b.kickoff));
         grid.innerHTML = sorted.map(renderCard).join("");
+
+        // Restore expanded state that survived the re-render
+        for (const gid of expandedGameIDs) {
+            const card = grid.querySelector(`.game-card--live[data-gameid="${gid}"]`);
+            if (card) {
+                card.classList.add("game-card--expanded");
+                const hint = card.querySelector(".gc-expand-hint");
+                if (hint) hint.textContent = "collapse ◂";
+            }
+        }
     } catch (err) {
         grid.innerHTML = `<div class="no-games">Failed to load game data.</div>`;
         console.error("Games fetch error:", err);
@@ -345,6 +356,45 @@ function renderUpcoming(game) {
 </div>`;
 }
 
+function ordinal(n) {
+    const i = parseInt(n);
+    if (i === 1) return "1st";
+    if (i === 2) return "2nd";
+    if (i === 3) return "3rd";
+    return `${i}th`;
+}
+
+function buildFieldSvg(yardLine, possession, homeTeam, awayTeam) {
+    // Convert "KC 35" or "50" → SVG x (0–120 scale; away EZ = 0–10, home EZ = 110–120)
+    let ballX = 60;
+    if (yardLine) {
+        const m = String(yardLine).match(/([A-Za-z]+)\s*(\d+)/);
+        if (m) {
+            const team = m[1].toUpperCase(), yard = parseInt(m[2]);
+            if (team === awayTeam)      ballX = 10 + yard;
+            else if (team === homeTeam) ballX = 110 - yard;
+        } else {
+            const n = parseInt(yardLine);
+            if (!isNaN(n)) ballX = 10 + n;
+        }
+    }
+    ballX = Math.max(11, Math.min(109, ballX));
+
+    const hashes = [0,10,20,30,40,50,60,70,80,90,100,110,120]
+        .map(x => `<line x1="${x}" y1="2" x2="${x}" y2="18" stroke="rgba(255,255,255,0.22)" stroke-width="0.7"/>`)
+        .join('');
+
+    const labels = [[20,"10"],[30,"20"],[40,"30"],[50,"40"],[60,"50"],[70,"40"],[80,"30"],[90,"20"],[100,"10"]]
+        .map(([x,n]) => `<text x="${x}" y="15" font-size="5" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="system-ui,sans-serif">${n}</text>`)
+        .join('');
+
+    const ezAway = `<text x="5" y="13" font-size="3.6" fill="rgba(255,255,255,0.48)" text-anchor="middle" font-family="system-ui,sans-serif">${awayTeam}</text>`;
+    const ezHome = `<text x="115" y="13" font-size="3.6" fill="rgba(255,255,255,0.48)" text-anchor="middle" font-family="system-ui,sans-serif">${homeTeam}</text>`;
+    const ball   = `<ellipse cx="${ballX}" cy="10" rx="3.4" ry="2.1" fill="#f0a035" opacity="0.95"/>`;
+
+    return `<svg class="gc-field-svg" viewBox="0 0 120 20" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="10" height="20" fill="rgba(12,50,18,0.95)"/><rect x="10" y="0" width="100" height="20" fill="rgba(18,78,28,0.85)"/><rect x="110" y="0" width="10" height="20" fill="rgba(12,50,18,0.95)"/>${hashes}${labels}${ezAway}${ezHome}${ball}</svg>`;
+}
+
 function renderLive(game) {
     const away = game.awayTeam ?? "TBD";
     const home = game.homeTeam ?? "TBD";
@@ -358,35 +408,54 @@ function renderLive(game) {
     const poss  = game.possession && game.possession !== "TBD"
         ? `<div class="gc-possession"><span class="poss-dot"></span><span>Ball: ${game.possession}</span></div>`
         : "";
+
+    const fieldSvg = buildFieldSvg(game.yardLine, game.possession, home, away);
+    const downDist = (game.down && game.yardsToGo)
+        ? `${ordinal(game.down)} &amp; ${game.yardsToGo}${game.yardLine ? ` · ${game.yardLine}` : ""}`
+        : (game.yardLine ? `At ${game.yardLine}` : "");
+    const lastPlayHtml = game.lastPlay
+        ? `<div class="gc-lastplay"><span class="gc-lastplay-label">Last play</span><span class="gc-lastplay-desc">${game.lastPlay}</span></div>`
+        : `<div class="gc-lastplay gc-lastplay--empty">Play data updates every ~2 min</div>`;
+
     return `
-<div class="game-card game-card--live">
-  <div class="gc-header">
-    <span class="gc-live-info">● LIVE</span>
-    <span class="gc-status-badge live">Live</span>
-  </div>
-  <div class="gc-body">
-    <div class="gc-teams">
-      <div class="gc-team">
-        ${logoImg(away)}
-        <span class="gc-abbr">${away}</span>
-        <span class="gc-name">${awayName}</span>
-      </div>
-      <div class="gc-center">
-        <div class="gc-scores">
-          <span class="gc-score live">${scoreAway}</span>
-          <span class="gc-dash">–</span>
-          <span class="gc-score live">${scoreHome}</span>
-        </div>
-        <span class="gc-live-info">${qtr}${clock}</span>
-        ${poss}
-      </div>
-      <div class="gc-team">
-        ${logoImg(home)}
-        <span class="gc-abbr">${home}</span>
-        <span class="gc-name">${homeName}</span>
+<div class="game-card game-card--live" data-gameid="${game.gameID}">
+  <div class="gc-live-summary">
+    <div class="gc-header">
+      <span class="gc-live-info">● LIVE</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="gc-status-badge live">Live</span>
+        <span class="gc-expand-hint">expand ▸</span>
       </div>
     </div>
-    ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
+    <div class="gc-body">
+      <div class="gc-teams">
+        <div class="gc-team">
+          ${logoImg(away)}
+          <span class="gc-abbr">${away}</span>
+          <span class="gc-name">${awayName}</span>
+        </div>
+        <div class="gc-center">
+          <div class="gc-scores">
+            <span class="gc-score live">${scoreAway}</span>
+            <span class="gc-dash">–</span>
+            <span class="gc-score live">${scoreHome}</span>
+          </div>
+          <span class="gc-live-info">${qtr}${clock}</span>
+          ${poss}
+        </div>
+        <div class="gc-team">
+          ${logoImg(home)}
+          <span class="gc-abbr">${home}</span>
+          <span class="gc-name">${homeName}</span>
+        </div>
+      </div>
+      ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
+    </div>
+  </div>
+  <div class="gc-live-detail">
+    <div class="gc-field">${fieldSvg}</div>
+    ${downDist ? `<div class="gc-down-dist">${downDist}</div>` : ""}
+    ${lastPlayHtml}
   </div>
 </div>`;
 }
@@ -436,9 +505,25 @@ function renderFinal(game) {
 </div>`;
 }
 
+// ── Expandable live cards ─────────────────────────────────────────────────────
+function setupLiveCardToggle() {
+    document.getElementById("games-grid").addEventListener("click", e => {
+        const card = e.target.closest(".game-card--live");
+        if (!card) return;
+        const gameId = card.dataset.gameid;
+        if (!gameId) return;
+        const isNowExpanded = card.classList.toggle("game-card--expanded");
+        const hint = card.querySelector(".gc-expand-hint");
+        if (hint) hint.textContent = isNowExpanded ? "collapse ◂" : "expand ▸";
+        if (isNowExpanded) expandedGameIDs.add(gameId);
+        else expandedGameIDs.delete(gameId);
+    });
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────────
 function init() {
     buildCalendar();
+    setupLiveCardToggle();
 
     // Find today or the next upcoming date
     let defaultIdx = SCHEDULE_DATES.findIndex(d => d.date >= TODAY);

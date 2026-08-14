@@ -382,6 +382,105 @@ main {
     to   { box-shadow: 0 0 0 1px rgba(255,220,50,0.45), 0 0 26px rgba(255,220,50,0.38), 0 0 44px rgba(255,255,255,0.07), var(--shadow); }
 }
 
+/* ── Live card: clickable + expand ── */
+.game-card--live {
+    cursor: pointer;
+}
+
+/* Wrap the score section so we can lay it beside the detail panel */
+.gc-live-summary {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Detail panel (field + last play): hidden until card is expanded */
+.gc-live-detail {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 18px;
+    border-left: 1px solid var(--border);
+    background: rgba(12,35,12,0.35);
+    min-width: 0;
+}
+
+/* Expanded card spans all grid columns, switches to flex row */
+.game-card--expanded {
+    grid-column: 1 / -1;
+    display: flex !important;
+    flex-direction: row;
+}
+.game-card--expanded:hover {
+    transform: none;
+}
+.game-card--expanded .gc-live-summary {
+    width: 280px;
+    flex-shrink: 0;
+}
+.game-card--expanded .gc-live-detail {
+    display: flex;
+    flex: 1;
+}
+
+/* Expand hint text in live card header */
+.gc-expand-hint {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    opacity: 0.5;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+/* Football field SVG wrapper */
+.gc-field {
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+}
+.gc-field-svg {
+    display: block;
+    width: 100%;
+    height: 60px;
+}
+
+/* Down & distance line */
+.gc-down-dist {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.25px;
+    flex-shrink: 0;
+}
+
+/* Last play card */
+.gc-lastplay {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+}
+.gc-lastplay-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    opacity: 0.65;
+}
+.gc-lastplay-desc {
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.5;
+}
+.gc-lastplay--empty {
+    opacity: 0.4;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--text-dim);
+}
+
 /* ── Final game card (muted) ── */
 .game-card--final {
     opacity: 0.72;
