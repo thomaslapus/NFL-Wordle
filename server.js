@@ -78,10 +78,6 @@ function writeDiskCache(file, data) {
 // ── Tank01 daily call budget ──────────────────────────────────────────────────
 const DAILY_CALL_LIMIT = 990;
 
-// Hard stop: block ALL Tank01 calls until this UTC timestamp (7:05 pm ET on 2026-08-14).
-// Remove or zero this out once the new billing window is active.
-const HARD_STOP_UNTIL = new Date("2026-08-14T23:05:00Z");
-
 // Billing window resets at 7:05 pm ET each day (not UTC midnight).
 // Returns a stable string identifying the current billing window.
 function billingDayStr() {
@@ -103,10 +99,6 @@ function billingDayStr() {
 let callBudget = readDiskCache("api_calls.json") || { date: "", count: 0 };
 
 function checkDailyLimit() {
-    // Hard stop until billing window resets at 7:05 pm ET
-    if (Date.now() < HARD_STOP_UNTIL.getTime()) {
-        throw new Error(`Tank01 calls suspended until 7:05 pm ET (${HARD_STOP_UNTIL.toISOString()})`);
-    }
     const today = billingDayStr();
     if (callBudget.date !== today) {
         // New billing window — reset
