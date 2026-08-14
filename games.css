@@ -22,7 +22,7 @@ main {
 
 #cal-track {
     overflow-x: auto;
-    padding: 10px 12px 8px;
+    padding: 8px 12px 10px;
     scrollbar-width: thin;
     scrollbar-color: var(--surface-3) transparent;
 }
@@ -30,40 +30,70 @@ main {
 #cal-track::-webkit-scrollbar { height: 4px; }
 #cal-track::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
 
-/* ── Grid container (one column per date, 3 rows) ── */
-.cal-grid {
-    display: grid;
-    grid-template-rows: auto auto auto;
-    column-gap: 3px;
-    row-gap: 3px;
-    width: max-content;
-    align-items: end;
+/* ── Inner wrapper: column flex, sizing to content width ── */
+.cal-inner {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
 }
 
-/* ── Season label row (row 1) — spans all dates in the season ── */
-.cal-season-header {
-    font-size: 0.58rem;
+/* ── Labels row: season slots laid out horizontally ── */
+.cal-labels-row {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    align-items: flex-start;
+}
+
+/* Season slot: column flex containing season label + week labels row */
+.cal-season-slot {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Season header text + spanning bottom border */
+.cal-season-label {
+    font-size: 0.54rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.7px;
+    color: rgba(255,255,255,0.32);
     text-align: center;
-    padding: 0 4px 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.13);
+    padding: 1px 2px 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.18);
     white-space: nowrap;
+    overflow: hidden;
 }
 
-/* ── Week label row (row 2) — spans dates within each week ── */
-.cal-week-header {
-    font-size: 0.56rem;
+/* Week labels inside each season slot, horizontal */
+.cal-week-labels {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+}
+
+/* Individual week label + spanning bottom border */
+.cal-week-label {
+    flex-shrink: 0;
+    font-size: 0.5rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: rgba(255,255,255,0.22);
     text-align: center;
-    padding: 2px 2px 3px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 1px 2px 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.13);
     white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ── Dates row: buttons laid out horizontally ── */
+.cal-dates-row {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
 }
 
 /* ── Individual day button ── */
@@ -73,14 +103,15 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 1px;
-    padding: 5px 9px;
+    padding: 5px 4px;
     border-radius: 7px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: background 0.15s, border-color 0.15s;
-    min-width: 72px;
+    /* width is fixed at 82px via inline style in buildCalendar() */
     text-align: center;
     background: rgba(255,255,255,0.02);
+    box-sizing: border-box;
 }
 
 .cal-day:hover {

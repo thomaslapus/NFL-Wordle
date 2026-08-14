@@ -141,62 +141,72 @@ function buildCalendar() {
     if (!track) return;
     track.innerHTML = "";
 
-    // Group dates into seasons → weeks, tracking column indices
+    const BTN_W = 82;  // fixed button width in px
+    const GAP   = 2;   // gap between every adjacent item in px
+    const spanPx = n => n * BTN_W + (n - 1) * GAP;
+
+    // Group dates into seasons → weeks
     const seasons = [];
     let curSeason = null, curWeek = null;
     SCHEDULE_DATES.forEach((day, i) => {
         if (!curSeason || curSeason.type !== day.weekType) {
-            curSeason = { type: day.weekType, start: i, end: i, weeks: [] };
+            curSeason = { type: day.weekType, count: 0, weeks: [] };
             seasons.push(curSeason);
             curWeek = null;
         }
-        curSeason.end = i;
+        curSeason.count++;
         if (!curWeek || curWeek.label !== day.weekLabel) {
-            curWeek = { label: day.weekLabel, start: i, end: i };
+            curWeek = { label: day.weekLabel, count: 0 };
             curSeason.weeks.push(curWeek);
         }
-        curWeek.end = i;
+        curWeek.count++;
     });
 
-    // Single grid: rows = [season-header, week-header, date-buttons]
-    // Each date occupies one column; headers span their column range.
-    const grid = document.createElement("div");
-    grid.className = "cal-grid";
-    grid.style.gridTemplateColumns = `repeat(${SCHEDULE_DATES.length}, auto)`;
+    const inner = document.createElement("div");
+    inner.className = "cal-inner";
 
-    // Row 1 — season labels
-    for (const season of seasons) {
-        const el = document.createElement("div");
-        el.className = "cal-season-header";
-        el.textContent = season.type === "Regular" ? "Regular Season" : season.type;
-        el.style.gridColumn = `${season.start + 1} / ${season.end + 2}`;
-        el.style.gridRow = "1";
-        grid.appendChild(el);
-    }
+    // ── Row 1: season + week labels ──────────────────────────────────────────
+    const labelsRow = document.createElement("div");
+    labelsRow.className = "cal-labels-row";
 
-    // Row 2 — week labels
     for (const season of seasons) {
+        const slot = document.createElement("div");
+        slot.className = "cal-season-slot";
+        slot.style.width = spanPx(season.count) + "px";
+
+        const sl = document.createElement("div");
+        sl.className = "cal-season-label";
+        sl.textContent = season.type === "Regular" ? "Regular Season" : season.type;
+        slot.appendChild(sl);
+
+        const wRow = document.createElement("div");
+        wRow.className = "cal-week-labels";
+
         for (const week of season.weeks) {
-            const el = document.createElement("div");
-            el.className = "cal-week-header";
-            el.textContent = week.label.replace(/^PS Wk /, "Week ");
-            el.style.gridColumn = `${week.start + 1} / ${week.end + 2}`;
-            el.style.gridRow = "2";
-            grid.appendChild(el);
+            const wl = document.createElement("div");
+            wl.className = "cal-week-label";
+            wl.style.width = spanPx(week.count) + "px";
+            wl.textContent = week.label.replace(/^PS Wk /, "Week ");
+            wRow.appendChild(wl);
         }
+
+        slot.appendChild(wRow);
+        labelsRow.appendChild(slot);
     }
 
-    // Row 3 — date buttons
+    // ── Row 2: date buttons ──────────────────────────────────────────────────
+    const datesRow = document.createElement("div");
+    datesRow.className = "cal-dates-row";
+
     SCHEDULE_DATES.forEach((day, i) => {
         const btn = document.createElement("button");
         btn.className = "cal-day";
         btn.dataset.idx = i;
-        btn.style.gridColumn = `${i + 1}`;
-        btn.style.gridRow = "3";
+        btn.style.width = BTN_W + "px";
 
-        if (day.date < TODAY)       btn.classList.add("past");
-        else if (day.date === TODAY) btn.classList.add("today");
-        else                         btn.classList.add("future");
+        if (day.date < TODAY)        btn.classList.add("past");
+        else if (day.date === TODAY)  btn.classList.add("today");
+        else                          btn.classList.add("future");
 
         if (day.weekType === "Playoffs") {
             btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
@@ -205,10 +215,12 @@ function buildCalendar() {
         }
 
         btn.addEventListener("click", () => showDay(i));
-        grid.appendChild(btn);
+        datesRow.appendChild(btn);
     });
 
-    track.appendChild(grid);
+    inner.appendChild(labelsRow);
+    inner.appendChild(datesRow);
+    track.appendChild(inner);
 }
 
 // ── Show a day — fetch games from server, render ──────────────────────────────
