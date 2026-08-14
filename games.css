@@ -21,70 +21,49 @@ main {
 }
 
 #cal-track {
-    display: flex;
-    gap: 0;
     overflow-x: auto;
-    padding: 10px 12px;
+    padding: 10px 12px 8px;
     scrollbar-width: thin;
     scrollbar-color: var(--surface-3) transparent;
-    align-items: flex-start;
 }
 
 #cal-track::-webkit-scrollbar { height: 4px; }
 #cal-track::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
 
-/* ── Season groups ── */
-.cal-season-group {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border);
-    padding-right: 12px;
-    margin-right: 12px;
+/* ── Grid container (one column per date, 3 rows) ── */
+.cal-grid {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    column-gap: 3px;
+    row-gap: 3px;
+    width: max-content;
+    align-items: end;
 }
-.cal-season-group:last-child { border-right: none; padding-right: 0; margin-right: 0; }
 
+/* ── Season label row (row 1) — spans all dates in the season ── */
 .cal-season-header {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--text-dim);
-    padding: 0 2px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 6px;
+    color: rgba(255,255,255,0.3);
+    text-align: center;
+    padding: 0 4px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.13);
     white-space: nowrap;
 }
 
-.cal-weeks-row {
-    display: flex;
-    gap: 6px;
-    align-items: flex-start;
-}
-
-.cal-week-group {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    gap: 3px;
-}
-
+/* ── Week label row (row 2) — spans dates within each week ── */
 .cal-week-header {
-    font-size: 0.58rem;
+    font-size: 0.56rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--accent-2);
-    opacity: 0.75;
+    color: rgba(255,255,255,0.22);
     text-align: center;
-    padding: 0 2px 2px;
+    padding: 2px 2px 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     white-space: nowrap;
-}
-
-.cal-days {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
 }
 
 /* ── Individual day button ── */

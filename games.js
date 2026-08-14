@@ -53,7 +53,7 @@ const T = {
 // Game matchup data comes from the server via /api/games?date=YYYYMMDD.
 const SCHEDULE_DATES = [
     // Preseason
-    { date:"20260730", label:"Thu Jul 30",  weekType:"Preseason", weekLabel:"HOF",     fullLabel:"Hall of Fame Game" },
+    { date:"20260806", label:"Thu Aug 6",   weekType:"Preseason", weekLabel:"HOF",     fullLabel:"Hall of Fame Game" },
     { date:"20260813", label:"Thu Aug 13",  weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
     { date:"20260814", label:"Fri Aug 14",  weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
     { date:"20260815", label:"Sat Aug 15",  weekType:"Preseason", weekLabel:"PS Wk 1", fullLabel:"Preseason Week 1" },
@@ -139,75 +139,76 @@ let liveRefreshInterval = null;
 function buildCalendar() {
     const track = document.getElementById("cal-track");
     if (!track) return;
+    track.innerHTML = "";
 
-    // Group by season type, then by week label
+    // Group dates into seasons → weeks, tracking column indices
     const seasons = [];
     let curSeason = null, curWeek = null;
     SCHEDULE_DATES.forEach((day, i) => {
         if (!curSeason || curSeason.type !== day.weekType) {
-            curSeason = { type: day.weekType, weeks: [] };
+            curSeason = { type: day.weekType, start: i, end: i, weeks: [] };
             seasons.push(curSeason);
             curWeek = null;
         }
+        curSeason.end = i;
         if (!curWeek || curWeek.label !== day.weekLabel) {
-            curWeek = { label: day.weekLabel, days: [] };
+            curWeek = { label: day.weekLabel, start: i, end: i };
             curSeason.weeks.push(curWeek);
         }
-        curWeek.days.push({ ...day, idx: i });
+        curWeek.end = i;
     });
 
+    // Single grid: rows = [season-header, week-header, date-buttons]
+    // Each date occupies one column; headers span their column range.
+    const grid = document.createElement("div");
+    grid.className = "cal-grid";
+    grid.style.gridTemplateColumns = `repeat(${SCHEDULE_DATES.length}, auto)`;
+
+    // Row 1 — season labels
     for (const season of seasons) {
-        const sg = document.createElement("div");
-        sg.className = "cal-season-group";
+        const el = document.createElement("div");
+        el.className = "cal-season-header";
+        el.textContent = season.type === "Regular" ? "Regular Season" : season.type;
+        el.style.gridColumn = `${season.start + 1} / ${season.end + 2}`;
+        el.style.gridRow = "1";
+        grid.appendChild(el);
+    }
 
-        const sh = document.createElement("div");
-        sh.className = "cal-season-header";
-        sh.textContent = season.type === "Regular" ? "Regular Season" : season.type;
-        sg.appendChild(sh);
-
-        const wr = document.createElement("div");
-        wr.className = "cal-weeks-row";
-
+    // Row 2 — week labels
+    for (const season of seasons) {
         for (const week of season.weeks) {
-            const wg = document.createElement("div");
-            wg.className = "cal-week-group";
+            const el = document.createElement("div");
+            el.className = "cal-week-header";
+            el.textContent = week.label.replace(/^PS Wk /, "Week ");
+            el.style.gridColumn = `${week.start + 1} / ${week.end + 2}`;
+            el.style.gridRow = "2";
+            grid.appendChild(el);
+        }
+    }
 
-            const wh = document.createElement("div");
-            wh.className = "cal-week-header";
-            wh.textContent = week.label.replace(/^PS Wk /, "Week ");
-            wg.appendChild(wh);
+    // Row 3 — date buttons
+    SCHEDULE_DATES.forEach((day, i) => {
+        const btn = document.createElement("button");
+        btn.className = "cal-day";
+        btn.dataset.idx = i;
+        btn.style.gridColumn = `${i + 1}`;
+        btn.style.gridRow = "3";
 
-            const ds = document.createElement("div");
-            ds.className = "cal-days";
+        if (day.date < TODAY)       btn.classList.add("past");
+        else if (day.date === TODAY) btn.classList.add("today");
+        else                         btn.classList.add("future");
 
-            for (const day of week.days) {
-                const btn = document.createElement("button");
-                btn.className = "cal-day";
-                btn.dataset.idx = day.idx;
-
-                if (day.date < TODAY)      btn.classList.add("past");
-                else if (day.date === TODAY) btn.classList.add("today");
-                else                        btn.classList.add("future");
-
-                // Playoff buttons keep their label badge; all others just show the date
-                if (day.weekType === "Playoffs") {
-                    const typeClass = "post";
-                    btn.innerHTML = `<span class="cal-week-type ${typeClass}">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
-                } else {
-                    btn.innerHTML = `<span class="cal-day-label">${day.label}</span>`;
-                }
-
-                btn.addEventListener("click", () => showDay(day.idx));
-                ds.appendChild(btn);
-            }
-
-            wg.appendChild(ds);
-            wr.appendChild(wg);
+        if (day.weekType === "Playoffs") {
+            btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
+        } else {
+            btn.innerHTML = `<span class="cal-day-label">${day.label}</span>`;
         }
 
-        sg.appendChild(wr);
-        track.appendChild(sg);
-    }
+        btn.addEventListener("click", () => showDay(i));
+        grid.appendChild(btn);
+    });
+
+    track.appendChild(grid);
 }
 
 // ── Show a day — fetch games from server, render ──────────────────────────────
