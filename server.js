@@ -31,6 +31,10 @@ let playerStats = null; // Stats/Fantasy: Tank01, cached weekly
 // Live game state: { [YYYYMMDD]: { updatedAt: ms, games: [...normalized] } }
 const liveState = {};
 
+let fantasyProjections = null; // weekly projections from getNFLProjections
+let injuryData   = { date: "", list: [] };    // from getNFLInjuriesByDate
+let inactiveData = { date: "", list: [] };    // from getNFLInactiveList
+
 // ── Logger ────────────────────────────────────────────────────────────────────
 function log(level, message) {
     console.log(`[${new Date().toISOString()}] [${level.toUpperCase()}] ${message}`);
@@ -321,6 +325,9 @@ async function pollLiveGames() {
     if (!isGameWindow()) return;
     pollRunning = true;
 
+    // Fetch inactive list once per game day (before first active poll)
+    await fetchInactives().catch(() => {});
+
     const today = todayStr();
     try {
         const games = await fetchGamesForDate(today);
@@ -539,6 +546,10 @@ function scheduleWeeklyRefresh() {
             writeDiskCache("team_stats.json", teamStats);
             playerStats = await buildPlayerStats(teamStats);
             writeDiskCache("player_stats.json", playerStats);
+            // Enrich with per-game logs (only if players have played games)
+            await enrichPlayerStatsFromGameLogs();
+            // Refresh projections for upcoming week
+            await fetchFantasyProjections(1, "reg");
             log("info", "Weekly refresh complete");
         } catch (err) {
             log("error", `Weekly refresh failed: ${err.message}`);
@@ -547,10 +558,189 @@ function scheduleWeeklyRefresh() {
     }, msUntilNextTuesday3am());
 }
 
+// ── Fantasy projections (getNFLProjections, 1 call/week) ─────────────────────
+async function fetchFantasyProjections(week = 1, seasonType = "reg") {
+    if (!RAPIDAPI_KEY) return;
+    log("info", `Fetching fantasy projections week ${week} (${seasonType})...`);
+    try {
+        const body = await tank01Get("/getNFLProjections", { week, season: NFL_SEASON, seasonType });
+        if (!body) return;
+        log("info", `getNFLProjections keys: ${Object.keys(body).join(", ")}`);
+        let raw = Array.isArray(body) ? body
+                : (body?.playerProjections ?? body?.projections ?? body?.players ?? null);
+        if (!raw) { const v = Object.values(body); if (v.length && v[0] && typeof v[0] === "object") raw = v; }
+        if (!Array.isArray(raw)) { log("warn", "getNFLProjections: unrecognized shape"); return; }
+        fantasyProjections = { week, seasonType, season: NFL_SEASON, players: raw };
+        writeDiskCache("fantasy_projections.json", fantasyProjections);
+        log("info", `Fantasy projections: ${raw.length} players`);
+    } catch (err) {
+        log("error", `fetchFantasyProjections failed: ${err.message}`);
+    }
+}
+
+// ── Injury report (getNFLInjuriesByDate, 1 call/day) ─────────────────────────
+function normalizeInjuryStatus(raw = "") {
+    const s = String(raw).toLowerCase();
+    if (s.includes("ir") || s.includes("reserve") || s.includes("injured reserve")) return "ir";
+    if (s.includes("doubtful"))   return "doubtful";
+    if (s.includes("questionable") || s.includes("day-to-day")) return "questionable";
+    if (s.includes("out") || s.includes("inactive")) return "out";
+    return "active";
+}
+
+async function fetchInjuries() {
+    if (!RAPIDAPI_KEY) return;
+    const today = utcDateStr();
+    if (injuryData.date === today && injuryData.list.length > 0) return;
+    log("info", "Fetching injury report...");
+    try {
+        const body = await tank01Get("/getNFLInjuriesByDate", { injuryDate: today.replace(/-/g,"") });
+        if (!body) return;
+        log("info", `getNFLInjuriesByDate keys: ${Object.keys(body).join(", ")}`);
+        let raw = Array.isArray(body) ? body : (body?.injuries ?? body?.playerInjuries ?? body?.report ?? null);
+        if (!raw) { const v = Object.values(body); if (v.length && v[0] && typeof v[0] === "object") raw = v; }
+        if (!Array.isArray(raw)) { log("warn", "getNFLInjuriesByDate: unrecognized shape"); return; }
+        const list = raw.map(e => ({
+            playerID: pickStr(e, "playerID","id"),
+            name:     pickStr(e, "playerName","longName","fullName","name"),
+            team:     pickStr(e, "teamAbv","team"),
+            pos:      pickStr(e, "pos","position"),
+            status:   normalizeInjuryStatus(pickStr(e, "injuryStatus","status","designation")),
+            bodyPart: pickStr(e, "bodyPart","injury","description"),
+        }));
+        injuryData = { date: today, list };
+        writeDiskCache("injuries.json", injuryData);
+        log("info", `Injury report: ${list.length} players`);
+    } catch (err) {
+        log("error", `fetchInjuries failed: ${err.message}`);
+    }
+}
+
+// ── Inactive list (getNFLInactiveList, called before game windows) ────────────
+async function fetchInactives() {
+    if (!RAPIDAPI_KEY) return;
+    const today = todayStr();
+    if (inactiveData.date === today && inactiveData.list.length > 0) return;
+    log("info", "Fetching inactive list...");
+    try {
+        const body = await tank01Get("/getNFLInactiveList", { gameDate: today.replace(/-/g,"") });
+        if (!body) return;
+        log("info", `getNFLInactiveList keys: ${Object.keys(body).join(", ")}`);
+        let raw = Array.isArray(body) ? body : (body?.inactiveList ?? body?.inactives ?? body?.players ?? null);
+        if (!raw) { const v = Object.values(body); if (v.length && v[0] && typeof v[0] === "object") raw = v; }
+        if (!Array.isArray(raw)) { log("warn", "getNFLInactiveList: unrecognized shape"); return; }
+        const list = raw.map(e => ({
+            playerID: pickStr(e, "playerID","id"),
+            name:     pickStr(e, "playerName","longName","fullName","name"),
+            team:     pickStr(e, "teamAbv","team"),
+            pos:      pickStr(e, "pos","position"),
+            status:   "out",
+        }));
+        inactiveData = { date: today, list };
+        writeDiskCache("inactives.json", inactiveData);
+        log("info", `Inactive list: ${list.length} players`);
+    } catch (err) {
+        log("error", `fetchInactives failed: ${err.message}`);
+    }
+}
+
+// ── Daily injury check at 3pm ET ──────────────────────────────────────────────
+function scheduleDailyInjuryCheck() {
+    if (!RAPIDAPI_KEY) return;
+    const now = new Date();
+    const isDST = now.getUTCMonth() >= 2 && now.getUTCMonth() <= 10;
+    const etOffset = isDST ? 4 : 5;
+    const etNow = new Date(now.getTime() - etOffset * 3_600_000);
+    let target = new Date(etNow);
+    target.setUTCHours(15 + etOffset, 0, 0, 0); // 3pm ET
+    if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
+    const delay = Math.max(target.getTime() - now.getTime(), 60_000);
+    log("info", `Daily injury check scheduled in ${Math.round(delay/60000)} min`);
+    setTimeout(async function check() {
+        await fetchInjuries().catch(err => log("error", `Daily injury check: ${err.message}`));
+        setTimeout(check, 24 * 3_600_000);
+    }, delay);
+}
+
+// ── Per-player game stats (getNFLGamesForPlayer, weekly) ──────────────────────
+// Called after buildPlayerStats — only fetches for players who have played games.
+async function enrichPlayerStatsFromGameLogs() {
+    if (!playerStats) return;
+    const SKILL = new Set(["QB","RB","WR","TE"]);
+    const active = playerStats.filter(p => SKILL.has(p.pos) && p.games > 0);
+    if (!active.length) { log("info", "enrichPlayerStatsFromGameLogs: no active skill players yet"); return; }
+    log("info", `Fetching game logs for ${active.length} skill players...`);
+    let logged = false;
+    for (const player of active) {
+        try {
+            const body = await tank01Get("/getNFLGamesForPlayer", { playerID: player.id, season: NFL_SEASON });
+            if (!logged) { log("info", `getNFLGamesForPlayer keys: ${Object.keys(body ?? {}).join(", ")}`); logged = true; }
+            const games = Array.isArray(body) ? body : (body?.playerGameStats ?? body?.games ?? body?.gameLog ?? body?.stats ?? []);
+            if (!Array.isArray(games) || !games.length) continue;
+            let passYds=0,passTDs=0,passAtt=0,passComp=0,passINT=0,rushYds=0,rushTDs=0,rushAtt=0,recYds=0,recTDs=0,recRec=0,targets=0,gp=0;
+            for (const g of games) {
+                if (!g || typeof g !== "object") continue; gp++;
+                passYds  += pick(g,"passYds","passingYards"); passTDs  += pick(g,"passTD","passTDs");
+                passAtt  += pick(g,"passAtt","attempts");     passComp += pick(g,"passComp","completions");
+                passINT  += pick(g,"int","INT","interceptions","passInt");
+                rushYds  += pick(g,"rushYds","rushingYards"); rushTDs  += pick(g,"rushTD","rushTDs");
+                rushAtt  += pick(g,"carries","rushAtt","rushAttempts");
+                recYds   += pick(g,"recYds","receivingYards"); recTDs  += pick(g,"recTD","recTDs");
+                recRec   += pick(g,"receptions","rec","catches"); targets += pick(g,"targets","tgts","tar");
+            }
+            if (!gp) continue;
+            const idx = playerStats.indexOf(player);
+            if (idx >= 0) {
+                const g = gp;
+                playerStats[idx] = { ...player, games:gp, passYds,passTDs,passAtt,passComp,passINT,
+                    compPct: passAtt>0 ? +(passComp/passAtt*100).toFixed(1):0,
+                    rushYds,rushTDs,rushAtt, ypc: rushAtt>0?+(rushYds/rushAtt).toFixed(1):0,
+                    rushYpg:+(rushYds/g).toFixed(1), recYds,recTDs,recRec,targets,
+                    recYpg:+(recYds/g).toFixed(1), recPg:+(recRec/g).toFixed(1),
+                    totalYds:passYds+rushYds+recYds, totalTDs:passTDs+rushTDs+recTDs,
+                    ypg:+((passYds+rushYds+recYds)/g).toFixed(1) };
+            }
+        } catch (err) { log("warn", `getNFLGamesForPlayer failed for ${player.name}: ${err.message}`); }
+    }
+    writeDiskCache("player_stats.json", playerStats);
+    log("info", "Game log enrichment complete");
+}
+
+// ── Team schedules fallback for future games (getNFLTeamSchedule, 32 calls once) ──
+async function loadTeamSchedules() {
+    if (!RAPIDAPI_KEY || !teamStats) return;
+    const todayKey = todayStr().replace(/-/g,"");
+    const futureDates = Object.keys(seasonSchedule).filter(d => d >= todayKey);
+    if (futureDates.length >= 5) { log("info", `Season schedule has ${futureDates.length} future dates — skipping team schedule fetch`); return; }
+    log("info", `Season schedule sparse (${futureDates.length} future dates) — loading team schedules...`);
+    let logged = false;
+    for (const team of teamStats) {
+        try {
+            const body = await tank01Get("/getNFLTeamSchedule", { teamAbv: team.abbr, season: NFL_SEASON });
+            if (!logged) { log("info", `getNFLTeamSchedule keys: ${Object.keys(body ?? {}).join(", ")}`); logged = true; }
+            const sched = body?.teamSchedule ?? body?.schedule ?? body?.games ?? (Array.isArray(body) ? body : []);
+            if (!Array.isArray(sched)) continue;
+            for (const g of sched) {
+                const game = normalizeGame(g);
+                if (!game.date) continue;
+                const dk = game.date.replace(/-/g,"");
+                if (dk < todayKey) continue;
+                if (!seasonSchedule[dk]) seasonSchedule[dk] = [];
+                if (!seasonSchedule[dk].find(x => x.gameID === game.gameID)) seasonSchedule[dk].push(game);
+            }
+        } catch (err) { log("warn", `getNFLTeamSchedule failed for ${team.abbr}: ${err.message}`); }
+    }
+    writeDiskCache(`schedule_${NFL_SEASON}.json`, seasonSchedule);
+    log("info", `After team schedules: ${Object.keys(seasonSchedule).length} total dates`);
+}
+
 // ── Startup: load from disk cache, then fetch if missing ─────────────────────
 // Compatible with old cache file names (team_stats_tank01.json) and new names.
 teamStats   = readDiskCache("team_stats.json")   ?? readDiskCache("team_stats_tank01.json");
 playerStats = readDiskCache("player_stats.json") ?? readDiskCache("player_stats_tank01.json");
+fantasyProjections = readDiskCache("fantasy_projections.json");
+injuryData   = readDiskCache("injuries.json")  || { date: "", list: [] };
+inactiveData = readDiskCache("inactives.json") || { date: "", list: [] };
 
 if (teamStats)   log("info", `Disk cache: ${teamStats.length} teams`);
 if (playerStats) log("info", `Disk cache: ${playerStats.length} players`);
@@ -580,6 +770,14 @@ scheduleWeeklyRefresh();
 setTimeout(pollLiveGames, 5_000);
 // Load season schedule in background (cached to disk after first run)
 setTimeout(loadSeasonSchedule, 10_000);
+// Load team schedules 30s after season schedule attempt (fallback for future games)
+setTimeout(loadTeamSchedules, 30_000);
+// Fetch projections and injury report on startup
+setTimeout(async () => {
+    await fetchInjuries().catch(() => {});
+    if (!fantasyProjections) await fetchFantasyProjections(1, "reg").catch(() => {});
+}, 15_000);
+scheduleDailyInjuryCheck();
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
@@ -655,6 +853,20 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(503, { status: "loading", message: msg });
             }
             return sendJson(200, playerStats, 900);
+        }
+
+        // ── /api/projections ──────────────────────────────────────────
+        if (urlPath === "/api/projections") {
+            if (!fantasyProjections) {
+                return sendJson(503, { status: "loading", message: "Projections not yet available" });
+            }
+            return sendJson(200, fantasyProjections, 3600);
+        }
+
+        // ── /api/injuries ─────────────────────────────────────────────
+        if (urlPath === "/api/injuries") {
+            const combined = [...injuryData.list, ...inactiveData.list];
+            return sendJson(200, { date: injuryData.date, players: combined }, 1800);
         }
 
         // ── /api/games?date=YYYYMMDD ──────────────────────────────────

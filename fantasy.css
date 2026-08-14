@@ -348,15 +348,16 @@ main {
     background: rgba(255,255,255,0.06);
 }
 
-/* ── Rankings table ── */
+/* ── Rankings table — full width, striped, light borders ── */
 .rankings-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.82rem;
+    table-layout: auto;
 }
 .rankings-table thead tr {
-    background: rgba(255,255,255,0.04);
-    border-bottom: 2px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.18);
 }
 .rankings-table th {
     padding: 8px 10px;
@@ -367,40 +368,61 @@ main {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,0.06);
 }
+.rankings-table th:last-child { border-right: none; }
 .rankings-table th.rt-player,
 .rankings-table th.rt-rank,
 .rankings-table th.rt-photo,
 .rankings-table th.rt-pos { text-align: left; }
 
-.rankings-table tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.12s;
-}
-.rankings-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+/* Alternating rows */
+.rankings-table tbody tr.row-even { background: rgba(255,255,255,0.015); }
+.rankings-table tbody tr.row-odd  { background: rgba(255,255,255,0.038); }
+.rankings-table tbody tr:hover    { background: rgba(82,130,255,0.08); }
 
 .rankings-table td {
     padding: 7px 10px;
     text-align: right;
     color: var(--text);
     white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid rgba(255,255,255,0.04);
 }
+.rankings-table td:last-child { border-right: none; }
 .rankings-table td.rt-rank,
 .rankings-table td.rt-photo,
 .rankings-table td.rt-player,
 .rankings-table td.rt-pos { text-align: left; }
 
-.rt-rank  { width: 32px; padding-left: 14px !important; }
-.rt-photo { width: 44px; padding: 5px 6px !important; }
-.rt-player { min-width: 140px; }
-.rt-pos   { width: 44px; }
-.rt-num   { width: 72px; font-variant-numeric: tabular-nums; }
+.rt-rank   { width: 30px; padding-left: 14px !important; }
+.rt-photo  { width: 44px; padding: 5px 6px !important; border-right: none !important; }
+.rt-player { min-width: 130px; }
+.rt-pos    { width: 40px; }
+.rt-num    { width: 68px; font-variant-numeric: tabular-nums; }
 
-/* FPPG column highlighted */
+/* FPPG / first stat column highlighted */
 .rankings-table td.rt-num:first-of-type {
     font-weight: 700;
     color: var(--accent-2);
 }
+
+/* ── Injury badges ── */
+.inj-badge {
+    display: inline-block;
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 5px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+.inj-q     { background: rgba(255,185,0,0.22);  color: #f0b800; border: 1px solid rgba(255,185,0,0.35); }
+.inj-doubt { background: rgba(255,120,0,0.22);  color: #ff8c00; border: 1px solid rgba(255,120,0,0.35); }
+.inj-out   { background: rgba(220,50,50,0.22);  color: #ff6060; border: 1px solid rgba(220,50,50,0.35); }
+.inj-ir    { background: rgba(140,50,200,0.22); color: #cc88ff; border: 1px solid rgba(140,50,200,0.35); }
 
 /* Expanded detail grid (used by weekly list) */
 .detail-grid {

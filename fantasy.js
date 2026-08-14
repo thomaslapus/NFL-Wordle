@@ -152,53 +152,44 @@ function computeFppg(player, pprMult) {
     return +(adjusted / player.g).toFixed(1);
 }
 
-/* ── Weekly top-10 data ──────────────────────────────────────── */
-const TOP10_LAST = [
-    { name:"Lamar Jackson",    team:"BAL", pos:"QB", pts:"41.2",
-      detail:{ "Pass Yds":"388","Pass TD":"4","Rush Yds":"74","Rush TD":"1","INT":"0","FP":"41.2" } },
-    { name:"Josh Allen",       team:"BUF", pos:"QB", pts:"38.9",
-      detail:{ "Pass Yds":"362","Pass TD":"3","Rush Yds":"91","Rush TD":"2","INT":"0","FP":"38.9" } },
-    { name:"Saquon Barkley",   team:"PHI", pos:"RB", pts:"36.4",
-      detail:{ "Rush Yds":"211","Rush TD":"2","Rec":"5","Rec Yds":"42","Rec TD":"0","FP":"36.4" } },
-    { name:"Ja'Marr Chase",    team:"CIN", pos:"WR", pts:"35.1",
-      detail:{ "Rec":"11","Rec Yds":"198","Rec TD":"2","Rush Yds":"-","Rush TD":"-","FP":"35.1" } },
-    { name:"Jalen Hurts",      team:"PHI", pos:"QB", pts:"33.7",
-      detail:{ "Pass Yds":"291","Pass TD":"2","Rush Yds":"88","Rush TD":"2","INT":"0","FP":"33.7" } },
-    { name:"Derrick Henry",    team:"BAL", pos:"RB", pts:"29.8",
-      detail:{ "Rush Yds":"168","Rush TD":"2","Rec":"4","Rec Yds":"29","Rec TD":"0","FP":"29.8" } },
-    { name:"CeeDee Lamb",      team:"DAL", pos:"WR", pts:"27.4",
-      detail:{ "Rec":"9","Rec Yds":"162","Rec TD":"2","Rush Yds":"-","Rush TD":"-","FP":"27.4" } },
-    { name:"Trey McBride",     team:"ARI", pos:"TE", pts:"24.1",
-      detail:{ "Rec":"10","Rec Yds":"118","Rec TD":"1","Rush Yds":"-","Rush TD":"-","FP":"24.1" } },
-    { name:"Jahmyr Gibbs",     team:"DET", pos:"RB", pts:"23.6",
-      detail:{ "Rush Yds":"118","Rush TD":"1","Rec":"7","Rec Yds":"54","Rec TD":"1","FP":"23.6" } },
-    { name:"Justin Jefferson", team:"MIN", pos:"WR", pts:"22.9",
-      detail:{ "Rec":"8","Rec Yds":"148","Rec TD":"1","Rush Yds":"-","Rush TD":"-","FP":"22.9" } },
-];
-
-const TOP10_PROJ = [
-    { name:"Lamar Jackson",    team:"BAL", pos:"QB", pts:"-", detail:{ "Pass Yds":"-","Pass TD":"-","Rush Yds":"-","Rush TD":"-","INT":"-","FP (proj)":"-" } },
-    { name:"Josh Allen",       team:"BUF", pos:"QB", pts:"-", detail:{ "Pass Yds":"-","Pass TD":"-","Rush Yds":"-","Rush TD":"-","INT":"-","FP (proj)":"-" } },
-    { name:"Saquon Barkley",   team:"PHI", pos:"RB", pts:"-", detail:{ "Rush Yds":"-","Rush TD":"-","Rec":"-","Rec Yds":"-","Rec TD":"-","FP (proj)":"-" } },
-    { name:"Jalen Hurts",      team:"PHI", pos:"QB", pts:"-", detail:{ "Pass Yds":"-","Pass TD":"-","Rush Yds":"-","Rush TD":"-","INT":"-","FP (proj)":"-" } },
-    { name:"Ja'Marr Chase",    team:"CIN", pos:"WR", pts:"-", detail:{ "Rec":"-","Rec Yds":"-","Rec TD":"-","Rush Yds":"-","Rush TD":"-","FP (proj)":"-" } },
-    { name:"Derrick Henry",    team:"BAL", pos:"RB", pts:"-", detail:{ "Rush Yds":"-","Rush TD":"-","Rec":"-","Rec Yds":"-","Rec TD":"-","FP (proj)":"-" } },
-    { name:"Patrick Mahomes",  team:"KC",  pos:"QB", pts:"-", detail:{ "Pass Yds":"-","Pass TD":"-","Rush Yds":"-","Rush TD":"-","INT":"-","FP (proj)":"-" } },
-    { name:"CeeDee Lamb",      team:"DAL", pos:"WR", pts:"-", detail:{ "Rec":"-","Rec Yds":"-","Rec TD":"-","Rush Yds":"-","Rush TD":"-","FP (proj)":"-" } },
-    { name:"Jahmyr Gibbs",     team:"DET", pos:"RB", pts:"-", detail:{ "Rush Yds":"-","Rush TD":"-","Rec":"-","Rec Yds":"-","Rec TD":"-","FP (proj)":"-" } },
-    { name:"Trey McBride",     team:"ARI", pos:"TE", pts:"-", detail:{ "Rec":"-","Rec Yds":"-","Rec TD":"-","Rush Yds":"-","Rush TD":"-","FP (proj)":"-" } },
-];
-
 /* ── State ─────────────────────────────────────────────────── */
 let currentPPR    = 1;      // default: full PPR
 let currentPos    = "ALL";
 let currentSeason = "2026";
-let lastPosTab    = { last: "QB", proj: "QB" };
 
-/* ── Ranking renderer ───────────────────────────────────────── */
+/* ── Pos color map ──────────────────────────────────────────── */
 const POS_COLOR = { QB:"qb", RB:"rb", WR:"wr", TE:"te" };
 
-// Column definitions per position for the rankings table
+/* ── Injury data ──────────────────────────────────────────── */
+let injuryMap = {}; // normalized-name → status string
+
+async function loadInjuryData() {
+    try {
+        const res = await fetch("/api/injuries");
+        if (!res.ok) return;
+        const data = await res.json();
+        injuryMap = {};
+        for (const p of (data.players || [])) {
+            const key = (p.name || "").toLowerCase().replace(/[^a-z]/g,"");
+            if (key) injuryMap[key] = p.status;
+        }
+    } catch (_) {}
+}
+
+function getInjuryStatus(name) {
+    const key = (name || "").toLowerCase().replace(/[^a-z]/g,"");
+    return injuryMap[key] || "active";
+}
+
+function injuryBadge(name) {
+    const s = getInjuryStatus(name);
+    if (s === "active") return "";
+    const map = { questionable:"Q", doubtful:"D", out:"OUT", ir:"IR" };
+    const cls = s === "ir" ? "inj-ir" : s === "out" ? "inj-out" : s === "doubtful" ? "inj-doubt" : "inj-q";
+    return `<span class="inj-badge ${cls}">${map[s] || s.toUpperCase()}</span>`;
+}
+
+/* ── Column definitions per position ────────────────────────── */
 function getRankingCols(pos) {
     const base = [
         { label:"FPPG",     fn: p => p.fppg.toFixed(1) },
@@ -240,14 +231,14 @@ function getRankingCols(pos) {
     return { QB:[...base,...qb], RB:[...base,...rb], WR:[...base,...wr], TE:[...base,...wr] }[pos] ?? [...base,...all];
 }
 
+/* ── Rankings table ─────────────────────────────────────────── */
 function renderRankings() {
     const container = document.getElementById("rankings-all-body");
     if (!container) return;
 
     let list = players.filter(p => currentPos === "ALL" || p.pos === currentPos);
-    list = list
-        .map(p => ({ ...p, fppg: computeFppg(p, currentPPR) }))
-        .sort((a, b) => b.fppg - a.fppg);
+    list = list.map(p => ({ ...p, fppg: computeFppg(p, currentPPR) }))
+               .sort((a, b) => b.fppg - a.fppg);
 
     if (!list.length) {
         container.innerHTML = `<p class="loading-note" style="padding:16px">No data available</p>`;
@@ -255,40 +246,170 @@ function renderRankings() {
     }
 
     const cols = getRankingCols(currentPos);
-
-    let html = `<div class="table-scroll"><table class="rankings-table">
-<thead><tr>
-  <th class="rt-rank">#</th>
-  <th class="rt-photo"></th>
-  <th class="rt-player">Player</th>
-  <th class="rt-pos">Pos</th>
-  ${cols.map(c => `<th class="rt-num">${c.label}</th>`).join("")}
-</tr></thead><tbody>`;
-
-    list.forEach((p, i) => {
-        const shotSrc = p.espnId
-            ? `https://a.espncdn.com/i/headshots/nfl/players/full/${p.espnId}.png`
-            : "";
-        const shot = shotSrc
-            ? `<img class="rank-headshot" src="${shotSrc}" onerror="this.style.display='none'">`
+    container.innerHTML = buildFantasyTable(list, cols, (p, i) => {
+        const shot = p.espnId
+            ? `<img class="rank-headshot" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.espnId}.png" onerror="this.style.display='none'">`
             : `<div class="rank-headshot-blank"></div>`;
         const numCls = i < 3 ? "top3" : "";
-        html += `<tr>
+        return `<tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
   <td class="rt-rank"><span class="rank-num ${numCls}">${i + 1}</span></td>
   <td class="rt-photo">${shot}</td>
   <td class="rt-player">
-    <div class="rank-name">${p.name}</div>
+    <div class="rank-name">${p.name}${injuryBadge(p.name)}</div>
     <div class="rank-team">${p.team}</div>
   </td>
   <td class="rt-pos"><span class="rg-pos ${POS_COLOR[p.pos]}">${p.pos}</span></td>
   ${cols.map(c => `<td class="rt-num">${c.fn(p)}</td>`).join("")}
 </tr>`;
     });
-
-    html += `</tbody></table></div>`;
-    container.innerHTML = html;
 }
 
+function buildFantasyTable(list, cols, rowFn) {
+    return `<table class="rankings-table">
+<thead><tr>
+  <th class="rt-rank">#</th>
+  <th class="rt-photo"></th>
+  <th class="rt-player">Player</th>
+  <th class="rt-pos">Pos</th>
+  ${cols.map(c => `<th class="rt-num">${c.label}</th>`).join("")}
+</tr></thead><tbody>
+${list.map((p, i) => rowFn(p, i)).join("\n")}
+</tbody></table>`;
+}
+
+/* ── Last Week table (10 blank rows) ────────────────────────── */
+const LAST_WEEK_POS_COLS = {
+    QB: [{ label:"FP", fn:()=>"—" }, { label:"Pass Yds",fn:()=>"—" }, { label:"Pass TD",fn:()=>"—" }, { label:"Rush Yds",fn:()=>"—" }],
+    RB: [{ label:"FP", fn:()=>"—" }, { label:"Rush Yds",fn:()=>"—" }, { label:"Rush TD",fn:()=>"—" }, { label:"Rec",fn:()=>"—" }, { label:"Rec Yds",fn:()=>"—" }],
+    WR: [{ label:"FP", fn:()=>"—" }, { label:"Rec",fn:()=>"—" }, { label:"Rec Yds",fn:()=>"—" }, { label:"Rec TD",fn:()=>"—" }],
+    TE: [{ label:"FP", fn:()=>"—" }, { label:"Rec",fn:()=>"—" }, { label:"Rec Yds",fn:()=>"—" }, { label:"Rec TD",fn:()=>"—" }],
+};
+
+function renderLastWeekTable(pos) {
+    const el = document.getElementById("top10-last");
+    if (!el) return;
+    const cols = LAST_WEEK_POS_COLS[pos] || LAST_WEEK_POS_COLS.QB;
+    const blankRows = Array.from({ length: 10 }, (_, i) => `<tr class="${i%2===0?"row-even":"row-odd"}">
+  <td class="rt-rank"><span class="rank-num">${i+1}</span></td>
+  <td class="rt-photo"><div class="rank-headshot-blank"></div></td>
+  <td class="rt-player"><div class="rank-name" style="color:var(--text-dim)">—</div><div class="rank-team">—</div></td>
+  <td class="rt-pos">—</td>
+  ${cols.map(() => `<td class="rt-num" style="color:var(--text-dim)">—</td>`).join("")}
+</tr>`).join("\n");
+
+    el.innerHTML = `<table class="rankings-table">
+<thead><tr>
+  <th class="rt-rank">#</th><th class="rt-photo"></th>
+  <th class="rt-player">Player</th><th class="rt-pos">Pos</th>
+  ${cols.map(c=>`<th class="rt-num">${c.label}</th>`).join("")}
+</tr></thead><tbody>${blankRows}</tbody></table>`;
+}
+
+/* ── Projected table (getNFLProjections data) ───────────────── */
+let projectionData = []; // loaded from /api/projections
+
+const PROJ_POS_COLS = {
+    QB: [{ label:"Proj Pts", fn:p=>p.pts }, { label:"Pass Yds",fn:p=>p.stats?.["Pass Yds"]||"—" }, { label:"Pass TD",fn:p=>p.stats?.["Pass TD"]||"—" }, { label:"Rush Yds",fn:p=>p.stats?.["Rush Yds"]||"—" }],
+    RB: [{ label:"Proj Pts", fn:p=>p.pts }, { label:"Rush Yds",fn:p=>p.stats?.["Rush Yds"]||"—" }, { label:"Rush TD",fn:p=>p.stats?.["Rush TD"]||"—" }, { label:"Rec",fn:p=>p.stats?.["Rec"]||"—" }, { label:"Rec Yds",fn:p=>p.stats?.["Rec Yds"]||"—" }],
+    WR: [{ label:"Proj Pts", fn:p=>p.pts }, { label:"Rec",fn:p=>p.stats?.["Rec"]||"—" }, { label:"Rec Yds",fn:p=>p.stats?.["Rec Yds"]||"—" }, { label:"Rec TD",fn:p=>p.stats?.["Rec TD"]||"—" }],
+    TE: [{ label:"Proj Pts", fn:p=>p.pts }, { label:"Rec",fn:p=>p.stats?.["Rec"]||"—" }, { label:"Rec Yds",fn:p=>p.stats?.["Rec Yds"]||"—" }, { label:"Rec TD",fn:p=>p.stats?.["Rec TD"]||"—" }],
+};
+
+function normalizeProjectionPlayer(raw) {
+    const pos = (raw.pos ?? raw.position ?? raw.fantasyPosition ?? "").toUpperCase();
+    const pts  = +(raw.fantasyPoints ?? raw.projPts ?? raw.pts ?? raw.projectedPoints ?? 0).toFixed(1);
+    const stats = {};
+    // Try to pull relevant stats from the projection object
+    const py = +(raw.passYds ?? raw.passingYards ?? 0);
+    const pt = +(raw.passTD ?? raw.passTDs ?? 0);
+    const ry = +(raw.rushYds ?? raw.rushingYards ?? 0);
+    const rt = +(raw.rushTD ?? raw.rushTDs ?? 0);
+    const rec = +(raw.rec ?? raw.receptions ?? raw.catches ?? 0);
+    const rcy = +(raw.recYds ?? raw.receivingYards ?? 0);
+    const rct = +(raw.recTD ?? raw.recTDs ?? 0);
+    if (py > 0 || pt > 0) { stats["Pass Yds"] = Math.round(py); stats["Pass TD"] = pt; }
+    if (ry > 0 || rt > 0) { stats["Rush Yds"] = Math.round(ry); stats["Rush TD"] = rt; }
+    if (rec > 0 || rcy > 0) { stats["Rec"] = rec; stats["Rec Yds"] = Math.round(rcy); stats["Rec TD"] = rct; }
+    return {
+        name:   (raw.longName ?? raw.fullName ?? raw.playerName ?? raw.name ?? "").trim(),
+        team:   (raw.teamAbv ?? raw.team ?? "—").toUpperCase(),
+        pos,
+        espnId: raw.espnID ?? raw.espnId ?? "",
+        pts,
+        stats,
+    };
+}
+
+function renderProjectionsTable(pos) {
+    const el = document.getElementById("top10-proj");
+    if (!el) return;
+    const cols = PROJ_POS_COLS[pos] || PROJ_POS_COLS.QB;
+
+    if (!projectionData.length) {
+        // Show 10 blank placeholder rows
+        el.innerHTML = `<table class="rankings-table">
+<thead><tr>
+  <th class="rt-rank">#</th><th class="rt-photo"></th>
+  <th class="rt-player">Player</th><th class="rt-pos">Pos</th>
+  ${cols.map(c=>`<th class="rt-num">${c.label}</th>`).join("")}
+</tr></thead><tbody>
+${Array.from({length:10},(_,i)=>`<tr class="${i%2===0?"row-even":"row-odd"}">
+  <td class="rt-rank"><span class="rank-num">${i+1}</span></td>
+  <td class="rt-photo"><div class="rank-headshot-blank"></div></td>
+  <td class="rt-player"><div class="rank-name" style="color:var(--text-dim)">—</div><div class="rank-team">—</div></td>
+  <td class="rt-pos">—</td>
+  ${cols.map(()=>`<td class="rt-num" style="color:var(--text-dim)">—</td>`).join("")}
+</tr>`).join("\n")}
+</tbody></table>`;
+        return;
+    }
+
+    const filtered = projectionData.filter(p => p.pos === pos).slice(0, 10);
+    if (!filtered.length) { el.innerHTML = `<p class="loading-note" style="padding:16px">No projections for ${pos}</p>`; return; }
+
+    el.innerHTML = `<table class="rankings-table">
+<thead><tr>
+  <th class="rt-rank">#</th><th class="rt-photo"></th>
+  <th class="rt-player">Player</th><th class="rt-pos">Pos</th>
+  ${cols.map(c=>`<th class="rt-num">${c.label}</th>`).join("")}
+</tr></thead><tbody>
+${filtered.map((p,i)=>{
+  const shot = p.espnId
+      ? `<img class="rank-headshot" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.espnId}.png" onerror="this.style.display='none'">`
+      : `<div class="rank-headshot-blank"></div>`;
+  const numCls = i<3?"top3":"";
+  return `<tr class="${i%2===0?"row-even":"row-odd"}">
+  <td class="rt-rank"><span class="rank-num ${numCls}">${i+1}</span></td>
+  <td class="rt-photo">${shot}</td>
+  <td class="rt-player">
+    <div class="rank-name">${p.name}${injuryBadge(p.name)}</div>
+    <div class="rank-team">${p.team}</div>
+  </td>
+  <td class="rt-pos"><span class="rg-pos ${POS_COLOR[p.pos]}">${p.pos}</span></td>
+  ${cols.map(c=>`<td class="rt-num">${c.fn(p)}</td>`).join("")}
+</tr>`;}).join("\n")}
+</tbody></table>`;
+}
+
+/* ── Weekly pos tab init (controls last week + projected boxes) ── */
+let activeLastPos = "QB";
+let activeProjPos = "QB";
+
+function initWeeklyPosTabs() {
+    document.querySelectorAll(".weekly-pos-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const listKey = btn.dataset.list;
+            const pos     = btn.dataset.pos;
+            document.querySelectorAll(`.weekly-pos-btn[data-list="${listKey}"]`)
+                .forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            if (listKey === "last") { activeLastPos = pos; renderLastWeekTable(pos); }
+            else                   { activeProjPos = pos; renderProjectionsTable(pos); }
+        });
+    });
+}
+
+/* ── Scoring label ──────────────────────────────────────────── */
 function updateScoringLabel() {
     const labels = { 1:"Full PPR · by Fantasy Pts/Game", 0.5:"Half PPR · by Fantasy Pts/Game", 0:"No PPR · by Fantasy Pts/Game" };
     const el = document.getElementById("scoring-label");
@@ -297,61 +418,7 @@ function updateScoringLabel() {
     if (title) title.textContent = `${currentSeason} Season Rankings`;
 }
 
-/* ── Weekly list with position filter ─────────────────────── */
-function renderWeeklyByPos(sourceList, containerId, pos) {
-    const filtered = sourceList.filter(p => p.pos === pos).slice(0, 10);
-    renderWeeklyList(filtered, containerId);
-}
-
-function initWeeklyPosTabs() {
-    document.querySelectorAll(".weekly-pos-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const listKey = btn.dataset.list;   // "last" or "proj"
-            const pos     = btn.dataset.pos;
-            // Update active state for this group only
-            document.querySelectorAll(`.weekly-pos-btn[data-list="${listKey}"]`)
-                .forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            lastPosTab[listKey] = pos;
-            const containerId = listKey === "last" ? "top10-last" : "top10-proj";
-            const sourceList  = listKey === "last" ? TOP10_LAST : TOP10_PROJ;
-            renderWeeklyByPos(sourceList, containerId, pos);
-        });
-    });
-}
-
-/* ── Weekly list renderer ───────────────────────────────────── */
-function renderWeeklyList(players, containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    el.innerHTML = players.map((p, i) => {
-        const numCls   = i < 3 ? "top3" : "";
-        const detailId = `${containerId}-d-${i}`;
-        const statHtml = Object.entries(p.detail)
-            .map(([k, v]) => `<div class="detail-stat"><span class="detail-stat-val">${v}</span><span class="detail-stat-lbl">${k}</span></div>`)
-            .join("");
-        return `
-<div class="weekly-row" onclick="toggleDetail('${detailId}')">
-  <span class="weekly-rank ${numCls}">${i + 1}</span>
-  <div>
-    <div class="weekly-name">${p.name}</div>
-    <div class="weekly-pos-team">${p.pos} · ${p.team}</div>
-  </div>
-  <span class="rg-pos ${POS_COLOR[p.pos]}" style="font-size:.6rem">${p.pos}</span>
-  <span class="weekly-pts">${p.pts}</span>
-</div>
-<div class="weekly-row-detail" id="${detailId}">
-  <div class="detail-grid">${statHtml}</div>
-</div>`;
-    }).join("");
-}
-
-/* ── Toggle expand ──────────────────────────────────────────── */
-function toggleDetail(id) {
-    document.getElementById(id)?.classList.toggle("open");
-}
-
-/* ── Controls ───────────────────────────────────────────────── */
+/* ── Rank controls ───────────────────────────────────────────── */
 function initRankControls() {
     // Season dropdown
     document.getElementById("season-select")?.addEventListener("change", async e => {
@@ -359,18 +426,15 @@ function initRankControls() {
         if (currentSeason === "2025") {
             players = PLAYERS;
         } else {
-            // Try to load 2026 API data
             try {
                 const res = await fetch("/api/player-stats");
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data) && data.length > 0) {
                         const KEEP = new Set(["QB","RB","WR","TE","FB"]);
-                        const mapped = data
-                            .filter(p => KEEP.has(p.pos) && (p.totalYds > 0 || p.passTDs > 0))
-                            .map(apiPlayerToFantasy);
-                        if (mapped.length > 0) { players = mapped; }
-                        else players = PLAYERS;
+                        // Include ALL skill players — zeros are valid for current preseason
+                        const mapped = data.filter(p => KEEP.has(p.pos)).map(apiPlayerToFantasy);
+                        players = mapped.length > 0 ? mapped : PLAYERS;
                     } else players = PLAYERS;
                 } else players = PLAYERS;
             } catch (_) { players = PLAYERS; }
@@ -409,14 +473,15 @@ function initPageTabs() {
     });
 }
 
-/* ── Platform tabs (My Team) ────────────────────────────────── */
+/* ── Platform tabs (My Team) ─────────────────────────────────── */
 function initPlatformTabs() {
     document.querySelectorAll(".plat-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             document.querySelectorAll(".plat-btn").forEach(b => b.classList.remove("active"));
             document.querySelectorAll(".link-form").forEach(f => f.classList.add("hidden"));
             btn.classList.add("active");
-            document.getElementById(`link-form-${btn.dataset.platform}`)?.classList.remove("hidden");
+            const platform = btn.dataset.platform;
+            document.getElementById(`link-form-${platform}`)?.classList.remove("hidden");
         });
     });
 }
@@ -446,25 +511,40 @@ async function init() {
     initWeeklyPosTabs();
     updateScoringLabel();
 
-    // Try to load 2026 API data; fall back to hardcoded PLAYERS
+    // Load injury data
+    await loadInjuryData().catch(() => {});
+
+    // Try to load 2026 API player stats
     try {
         const res = await fetch("/api/player-stats");
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
                 const KEEP = new Set(["QB","RB","WR","TE","FB"]);
-                const mapped = data
-                    .filter(p => KEEP.has(p.pos) && (p.totalYds > 0 || p.passTDs > 0))
-                    .map(apiPlayerToFantasy);
+                // Include all skill players — zeros are valid during preseason
+                const mapped = data.filter(p => KEEP.has(p.pos)).map(apiPlayerToFantasy);
                 if (mapped.length > 0) players = mapped;
             }
         }
     } catch (_) { /* use PLAYERS fallback */ }
 
     renderRankings();
-    // Render weekly lists filtered to default position (QB)
-    renderWeeklyByPos(TOP10_LAST, "top10-last", "QB");
-    renderWeeklyByPos(TOP10_PROJ, "top10-proj", "QB");
+
+    // Render last week — 10 blank rows (no data yet)
+    renderLastWeekTable("QB");
+
+    // Load projections and render projected table
+    try {
+        const res = await fetch("/api/projections");
+        if (res.ok) {
+            const data = await res.json();
+            if (data.players?.length > 0) {
+                projectionData = data.players.map(normalizeProjectionPlayer)
+                    .filter(p => p.name && ["QB","RB","WR","TE"].includes(p.pos));
+            }
+        }
+    } catch (_) {}
+    renderProjectionsTable("QB");
 }
 
 document.addEventListener("DOMContentLoaded", init);
