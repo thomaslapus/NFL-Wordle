@@ -236,9 +236,15 @@ async function loadSeasonSchedule() {
     const cacheFile = `schedule_${NFL_SEASON}.json`;
     const cached = readDiskCache(cacheFile);
     if (cached) {
-        Object.assign(seasonSchedule, cached);
-        log("info", `Schedule cache: ${Object.keys(seasonSchedule).length} dates`);
-        return;
+        const todayKey = todayStr().replace(/-/g,"");
+        const futureDates = Object.keys(cached).filter(d => d >= todayKey);
+        if (futureDates.length >= 5) {
+            Object.assign(seasonSchedule, cached);
+            log("info", `Schedule cache: ${Object.keys(seasonSchedule).length} dates (${futureDates.length} future)`);
+            return;
+        }
+        // Cache exists but has too few future dates — invalidate and re-fetch
+        log("info", `Schedule cache stale (only ${futureDates.length} future dates) — re-fetching`);
     }
 
     log("info", "Loading full season schedule from getNFLGamesForWeek...");
@@ -707,19 +713,34 @@ async function enrichPlayerStatsFromGameLogs() {
 }
 
 // ── Team schedules fallback for future games (getNFLTeamSchedule, 32 calls once) ──
+// Hardcoded team abbreviations so loadTeamSchedules doesn't depend on teamStats being loaded
+const ALL_TEAM_ABBRS = [
+    "ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN",
+    "DET","GB","HOU","IND","JAX","KC","LAC","LAR","LV","MIA",
+    "MIN","NE","NO","NYG","NYJ","PHI","PIT","SEA","SF","TB","TEN","WAS"
+];
+
 async function loadTeamSchedules() {
-    if (!RAPIDAPI_KEY || !teamStats) return;
+    if (!RAPIDAPI_KEY) return;
     const todayKey = todayStr().replace(/-/g,"");
     const futureDates = Object.keys(seasonSchedule).filter(d => d >= todayKey);
     if (futureDates.length >= 5) { log("info", `Season schedule has ${futureDates.length} future dates — skipping team schedule fetch`); return; }
-    log("info", `Season schedule sparse (${futureDates.length} future dates) — loading team schedules...`);
+    log("info", `Season schedule sparse (${futureDates.length} future dates) — loading team schedules (32 calls)...`);
     let logged = false;
-    for (const team of teamStats) {
+    for (const abbr of ALL_TEAM_ABBRS) {
         try {
-            const body = await tank01Get("/getNFLTeamSchedule", { teamAbv: team.abbr, season: NFL_SEASON });
+            const body = await tank01Get("/getNFLTeamSchedule", { teamAbv: abbr, season: NFL_SEASON });
             if (!logged) { log("info", `getNFLTeamSchedule keys: ${Object.keys(body ?? {}).join(", ")}`); logged = true; }
-            const sched = body?.teamSchedule ?? body?.schedule ?? body?.games ?? (Array.isArray(body) ? body : []);
-            if (!Array.isArray(sched)) continue;
+            // Try common response shapes — Tank01 often nests under the team abbr key or "schedule"
+            const sched = body?.[abbr]?.schedule ?? body?.[abbr] ?? body?.teamSchedule ?? body?.schedule ?? body?.games ?? (Array.isArray(body) ? body : null);
+            if (!Array.isArray(sched)) {
+                // Last resort: iterate values of the body object
+                const vals = Object.values(body ?? {});
+                if (vals.length && typeof vals[0] === "object" && !Array.isArray(vals[0])) {
+                    // Single team schedule object — skip
+                }
+                if (!Array.isArray(sched)) continue;
+            }
             for (const g of sched) {
                 const game = normalizeGame(g);
                 if (!game.date) continue;
@@ -728,10 +749,10 @@ async function loadTeamSchedules() {
                 if (!seasonSchedule[dk]) seasonSchedule[dk] = [];
                 if (!seasonSchedule[dk].find(x => x.gameID === game.gameID)) seasonSchedule[dk].push(game);
             }
-        } catch (err) { log("warn", `getNFLTeamSchedule failed for ${team.abbr}: ${err.message}`); }
+        } catch (err) { log("warn", `getNFLTeamSchedule failed for ${abbr}: ${err.message}`); }
     }
     writeDiskCache(`schedule_${NFL_SEASON}.json`, seasonSchedule);
-    log("info", `After team schedules: ${Object.keys(seasonSchedule).length} total dates`);
+    log("info", `After team schedules: ${Object.keys(seasonSchedule).length} total dates (${Object.keys(seasonSchedule).filter(d=>d>=todayKey).length} future)`);
 }
 
 // ── Startup: load from disk cache, then fetch if missing ─────────────────────
@@ -768,10 +789,11 @@ if ((!teamStats || !playerStats) && RAPIDAPI_KEY) {
 
 scheduleWeeklyRefresh();
 setTimeout(pollLiveGames, 5_000);
-// Load season schedule in background (cached to disk after first run)
-setTimeout(loadSeasonSchedule, 10_000);
-// Load team schedules 30s after season schedule attempt (fallback for future games)
-setTimeout(loadTeamSchedules, 30_000);
+// Load season schedule, then immediately chain team schedule fallback
+setTimeout(async () => {
+    await loadSeasonSchedule().catch(err => log("error", `loadSeasonSchedule: ${err.message}`));
+    await loadTeamSchedules().catch(err => log("error", `loadTeamSchedules: ${err.message}`));
+}, 10_000);
 // Fetch projections and injury report on startup
 setTimeout(async () => {
     await fetchInjuries().catch(() => {});
