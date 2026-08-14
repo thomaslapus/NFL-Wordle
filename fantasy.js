@@ -197,6 +197,30 @@ let lastPosTab    = { last: "QB", proj: "QB" };
 /* ── Ranking renderer ───────────────────────────────────────── */
 const POS_COLOR = { QB:"qb", RB:"rb", WR:"wr", TE:"te" };
 
+function rankInlineStat(p) {
+    const s = p.stats || {};
+    if (p.pos === "QB") {
+        const yds = s["Pass Yds"] || "—";
+        const td  = s["Pass TD"]  || 0;
+        const pct = s["Comp%"]    || "";
+        const rush = parseInt(s["Rush Yds"]) > 0 ? ` · ${s["Rush Yds"]} rush` : "";
+        return ` · ${yds} yds · ${td} TD${rush} · ${pct}`;
+    }
+    if (p.pos === "RB") {
+        const yds = s["Rush Yds"] || "—";
+        const td  = (parseInt(s["Rush TD"]||0) + parseInt(s["Rec TD"]||0)) || 0;
+        const rec = s["Rec"] || 0;
+        return ` · ${yds} rush · ${rec} rec · ${td} TD`;
+    }
+    if (p.pos === "WR" || p.pos === "TE") {
+        const yds = s["Rec Yds"] || "—";
+        const rec = s["Rec"]     || "—";
+        const td  = s["Rec TD"]  || 0;
+        return ` · ${yds} yds · ${rec} rec · ${td} TD`;
+    }
+    return "";
+}
+
 function renderRankings() {
     const body = document.getElementById("rankings-all-body");
     if (!body) return;
@@ -214,12 +238,13 @@ function renderRankings() {
         const statHtml = Object.entries(p.stats)
             .map(([k, v]) => `<div class="detail-stat"><span class="detail-stat-val">${v}</span><span class="detail-stat-lbl">${k}</span></div>`)
             .join("");
+        const inlineStat = rankInlineStat(p);
         return `
 <div class="rank-row" onclick="toggleDetail('${detailId}')">
   <span class="rank-num ${numCls}">${i + 1}</span>
   <div>
     <div class="rank-name">${p.name}</div>
-    <div class="rank-team">${p.team}</div>
+    <div class="rank-team">${p.team}<span class="rank-inline-stat">${inlineStat}</span></div>
   </div>
   <span class="rg-pos ${POS_COLOR[p.pos]}" style="font-size:.6rem">${p.pos}</span>
   <span class="rank-pts">${p.fppg} <span style="font-size:.6rem;color:var(--text-dim)">fppg</span></span>

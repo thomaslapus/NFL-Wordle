@@ -251,67 +251,122 @@ const DEFAULT_STATS = [
     { key: "games",    label: "Games",       fmt: v => v },
 ];
 
+let selectedPlayerIds = [];
+
 function initCompare() {
-    document.getElementById("pos-select").addEventListener("change", buildPlayerSelects);
-    buildPlayerSelects();
+    document.getElementById("pos-select").addEventListener("change", () => {
+        selectedPlayerIds = [];
+        buildPlayerSearch();
+    });
+    buildPlayerSearch();
 }
 
-function buildPlayerSelects() {
-    const pos      = document.getElementById("pos-select").value;
-    const wrap     = document.getElementById("player-selects");
-    const tableWrap = document.getElementById("compare-table-wrap");
+function buildPlayerSearch() {
+    const pos  = document.getElementById("pos-select").value;
+    const wrap = document.getElementById("player-selects");
+    wrap.innerHTML = `
+<div class="player-search-wrap">
+    <div class="player-chips" id="player-chips"></div>
+    <div class="player-search-row">
+        <input type="text" class="player-search-input" id="player-search-input"
+               placeholder="Search by name or team…" autocomplete="off">
+        <div class="player-suggestions" id="player-suggestions"></div>
+    </div>
+</div>`;
+    renderChips();
 
-    const sortKey = { QB: "passYds", RB: "rushYds", WR: "recYds", TE: "recYds" }[pos] || "totalYds";
-    const filtered = playerStats
-        .filter(p => p.pos === pos)
-        .sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
-
-    wrap.innerHTML = "";
-
-    if (!filtered.length) {
-        wrap.innerHTML = `<p class="loading-note">No ${pos} stats available</p>`;
-        if (tableWrap) tableWrap.innerHTML = "";
-        return;
-    }
-
-    for (let i = 0; i < 5; i++) {
-        const group = document.createElement("div");
-        group.className = "control-group";
-
-        const label = document.createElement("label");
-        label.className = "control-label";
-        label.textContent = `Player ${i + 1}`;
-
-        const sel = document.createElement("select");
-        sel.className = "stats-select player-select";
-        sel.innerHTML = '<option value="">— none —</option>';
-        filtered.forEach(p => {
-            const opt = document.createElement("option");
-            opt.value = p.id;
-            opt.textContent = `${p.name} (${p.team})`;
-            sel.appendChild(opt);
-        });
-
-        // Start blank — user picks players manually
-        sel.addEventListener("change", renderCompareTable);
-        group.appendChild(label);
-        group.appendChild(sel);
-        wrap.appendChild(group);
-    }
-
+    const input = document.getElementById("player-search-input");
+    input.addEventListener("input", () => showSuggestions(pos, input.value));
+    input.addEventListener("focus", () => showSuggestions(pos, input.value));
+    document.addEventListener("click", e => {
+        if (!e.target.closest(".player-search-wrap")) hideSuggestions();
+    }, { once: false });
     renderCompareTable();
+}
+
+function showSuggestions(pos, query) {
+    const box = document.getElementById("player-suggestions");
+    if (!box) return;
+
+    const sortKey = { QB:"passYds", RB:"rushYds", WR:"recYds", TE:"recYds" }[pos] || "totalYds";
+    const q = query.trim().toLowerCase();
+
+    let pool = playerStats
+        .filter(p => p.pos === pos && !selectedPlayerIds.includes(String(p.id)));
+
+    if (q) pool = pool.filter(p => p.name.toLowerCase().includes(q) || (p.team||"").toLowerCase().includes(q));
+
+    pool.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+    const shown = pool.slice(0, 8);
+
+    if (!shown.length) { box.innerHTML = ""; box.classList.remove("open"); return; }
+
+    box.innerHTML = shown.map(p =>
+        `<div class="suggestion-item" data-id="${p.id}">
+            <span class="sug-name">${p.name}</span>
+            <span class="sug-team">${p.team}</span>
+        </div>`
+    ).join("");
+    box.classList.add("open");
+
+    box.querySelectorAll(".suggestion-item").forEach(el => {
+        el.addEventListener("click", () => {
+            addPlayer(el.dataset.id);
+            const inp = document.getElementById("player-search-input");
+            if (inp) { inp.value = ""; inp.focus(); }
+        });
+    });
+}
+
+function hideSuggestions() {
+    const box = document.getElementById("player-suggestions");
+    if (box) { box.innerHTML = ""; box.classList.remove("open"); }
+}
+
+function addPlayer(id) {
+    if (selectedPlayerIds.length >= 5) return;
+    if (!selectedPlayerIds.includes(String(id))) {
+        selectedPlayerIds.push(String(id));
+        renderChips();
+        hideSuggestions();
+        const pos = document.getElementById("pos-select").value;
+        const inp = document.getElementById("player-search-input");
+        if (inp) showSuggestions(pos, inp.value || "");
+        renderCompareTable();
+    }
+}
+
+function removePlayer(id) {
+    selectedPlayerIds = selectedPlayerIds.filter(x => x !== String(id));
+    renderChips();
+    const pos = document.getElementById("pos-select").value;
+    const inp = document.getElementById("player-search-input");
+    if (inp) showSuggestions(pos, inp.value || "");
+    renderCompareTable();
+}
+
+function renderChips() {
+    const box = document.getElementById("player-chips");
+    if (!box) return;
+    if (!selectedPlayerIds.length) { box.innerHTML = ""; return; }
+    box.innerHTML = selectedPlayerIds.map(id => {
+        const p = playerStats.find(p => String(p.id) === id);
+        if (!p) return "";
+        return `<span class="player-chip">
+            ${p.name} <span class="chip-team">${p.team}</span>
+            <button class="chip-remove" onclick="removePlayer('${id}')" title="Remove">×</button>
+        </span>`;
+    }).join("");
 }
 
 function renderCompareTable() {
     const pos  = document.getElementById("pos-select").value;
-    const sels = document.querySelectorAll(".player-select");
     const wrap = document.getElementById("compare-table-wrap");
     const defs = POS_STATS[pos] || DEFAULT_STATS;
 
     const rows = [];
-    sels.forEach(sel => {
-        if (!sel.value) return;
-        const p = playerStats.find(p => String(p.id) === String(sel.value));
+    selectedPlayerIds.forEach(id => {
+        const p = playerStats.find(p => String(p.id) === id);
         if (p) rows.push(p);
     });
 
@@ -694,7 +749,8 @@ function initSeasonSelect() {
         await loadData(sel.value);
         initTeamTable();
         buildTeamCharts();
-        buildPlayerSelects();
+        selectedPlayerIds = [];
+        buildPlayerSearch();
         buildPlayerCharts(activeChartPos);
     });
 }

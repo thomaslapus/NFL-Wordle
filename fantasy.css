@@ -347,6 +347,7 @@ main {
 
 .rank-name { font-weight: 600; color: var(--text); }
 .rank-team { font-size: 0.68rem; color: var(--text-dim); }
+.rank-inline-stat { opacity: 0.7; margin-left: 2px; }
 .rank-pts  { font-weight: 700; color: var(--accent-2); text-align: right; font-size: 0.85rem; }
 
 /* Expanded player stats */

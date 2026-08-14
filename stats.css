@@ -172,6 +172,83 @@ main {
     align-self: center;
 }
 
+/* ── Player search bar ── */
+.player-search-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+.player-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 0; }
+
+.player-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px 4px 10px;
+    background: rgba(82,130,255,0.18);
+    border: 1px solid rgba(82,130,255,0.4);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: var(--text);
+    font-weight: 600;
+}
+.chip-team { font-weight: 400; opacity: 0.65; font-size: 0.72rem; }
+.chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 0 1px;
+    transition: color 0.15s;
+}
+.chip-remove:hover { color: #ff6b6b; }
+
+.player-search-row { position: relative; }
+
+.player-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.player-search-input:focus { border-color: var(--accent); }
+.player-search-input::placeholder { color: var(--text-dim); }
+
+.player-suggestions {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+}
+.player-suggestions.open { display: block; }
+
+.suggestion-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: rgba(255,255,255,0.06); }
+.sug-name { font-weight: 600; color: var(--text); }
+.sug-team { font-size: 0.72rem; color: var(--text-dim); }
+
 /* ============================================================
    Comparison table
    ============================================================ */
