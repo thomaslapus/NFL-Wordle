@@ -319,8 +319,22 @@ main {
 .gc-dash { font-size: 1.1rem; color: var(--border); }
 
 .gc-live-info { font-size: 0.68rem; color: #ff7070; font-weight: 600; letter-spacing: 0.3px; }
-.gc-possession { font-size: 0.63rem; color: var(--text-dim); display: flex; align-items: center; gap: 3px; }
-.poss-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); display: inline-block; }
+.gc-logo-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.gc-poss-ball {
+    position: absolute;
+    font-size: 0.72rem;
+    bottom: -6px;
+    right: -10px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+    pointer-events: none;
+    user-select: none;
+}
 
 /* Footer */
 .gc-footer {
