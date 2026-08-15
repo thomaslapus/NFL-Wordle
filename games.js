@@ -99,8 +99,8 @@ const SCHEDULE_DATES = [
     { date:"20261119", label:"Thu Nov 19",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
     { date:"20261122", label:"Sun Nov 22",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
     { date:"20261123", label:"Mon Nov 23",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
-    { date:"20261125", label:"Wed Nov 25",  weekType:"Regular",   weekLabel:"Week 11", fullLabel:"Regular Season Week 11" },
-    { date:"20261126", label:"Thu Nov 26",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
+    { date:"20261125", label:"Wed Nov 25",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
+    { date:"20261126", label:"Thu Nov 26",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12", holiday:"Thanksgiving" },
     { date:"20261127", label:"Fri Nov 27",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
     { date:"20261129", label:"Sun Nov 29",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
     { date:"20261130", label:"Mon Nov 30",  weekType:"Regular",   weekLabel:"Week 12", fullLabel:"Regular Season Week 12" },
@@ -114,21 +114,23 @@ const SCHEDULE_DATES = [
     { date:"20261219", label:"Sat Dec 19",  weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
     { date:"20261220", label:"Sun Dec 20",  weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
     { date:"20261221", label:"Mon Dec 21",  weekType:"Regular",   weekLabel:"Week 15", fullLabel:"Regular Season Week 15" },
-    { date:"20261225", label:"Fri Dec 25",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
+    { date:"20261224", label:"Thu Dec 24",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
+    { date:"20261225", label:"Fri Dec 25",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16", holiday:"Christmas" },
     { date:"20261227", label:"Sun Dec 27",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
     { date:"20261228", label:"Mon Dec 28",  weekType:"Regular",   weekLabel:"Week 16", fullLabel:"Regular Season Week 16" },
     { date:"20261231", label:"Thu Dec 31",  weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
     { date:"20270103", label:"Sun Jan 3",   weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
     { date:"20270104", label:"Mon Jan 4",   weekType:"Regular",   weekLabel:"Week 17", fullLabel:"Regular Season Week 17" },
+    { date:"20270110", label:"Sun Jan 10",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
+    { date:"20270111", label:"Mon Jan 11",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
     // Playoffs
-    { date:"20270110", label:"Sun Jan 10",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"Wild Card",   fullLabel:"Wild Card Weekend" },
-    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
-    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
-    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"Conf. Champ", fullLabel:"Conference Championships" },
-    { date:"20270207", label:"Sun Feb 7",   weekType:"Playoffs",  weekLabel:"Super Bowl",  fullLabel:"Super Bowl LXI" },
+    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
+    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
+    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
+    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Divisional Round" },
+    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Divisional Round" },
+    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Conference Championships" },
+    { date:"20270214", label:"Sun Feb 14",  weekType:"Playoffs",  weekLabel:"Super Bowl",  fullLabel:"Super Bowl LXI" },
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -211,6 +213,8 @@ function buildCalendar() {
 
         if (day.weekType === "Playoffs") {
             btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
+        } else if (day.holiday) {
+            btn.innerHTML = `<span class="cal-week-type post">${day.holiday}</span><span class="cal-day-label">${day.label}</span>`;
         } else {
             btn.innerHTML = `<span class="cal-day-label">${day.label}</span>`;
         }
@@ -234,8 +238,12 @@ async function showDay(idx) {
 
     const day = SCHEDULE_DATES[idx];
 
-    document.getElementById("day-label").textContent =
-        `${day.weekType} ${day.weekLabel} — ${day.label}`;
+    const weekId = day.weekLabel === "TBD" ? day.fullLabel
+                  : day.weekType === "Regular"  ? `Regular Season ${day.weekLabel}`
+                  : day.weekType === "Playoffs" ? day.weekLabel
+                  : day.fullLabel;
+    const holidaySuffix = day.holiday ? ` · ${day.holiday}` : "";
+    document.getElementById("day-label").textContent = `${weekId} — ${day.label}${holidaySuffix}`;
     document.getElementById("day-badge").textContent =
         day.date === TODAY ? "Today" : day.date < TODAY ? "Final" : "Upcoming";
 
