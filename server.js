@@ -166,7 +166,9 @@ async function sendApiWarningEmail(count, isHardStop = false) {
 
 // Persisted to disk so the count survives server restarts within the same billing window.
 let callBudget    = readDiskCache("api_calls.json") || { date: "", count: 0 };
-let apiHardStopped = false; // set true at HARD_STOP_LIMIT; cleared on billing window reset
+// MANUAL HARD STOP — active until billing window resets at 22:54 UTC 2026-08-14.
+// Automatically cleared by checkDailyLimit() when the new window opens.
+let apiHardStopped = true;
 
 function checkDailyLimit() {
     const today = billingDayStr();
