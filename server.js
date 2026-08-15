@@ -173,19 +173,28 @@ let apiHardStopped = true;
 function checkDailyLimit() {
     const today = billingDayStr();
     if (callBudget.date !== today) {
-        // New billing window — reset everything
-        callBudget     = { date: today, count: 0 };
-        email500Sent   = false;
-        email900Sent   = false;
-        apiHardStopped = false;
+        // Distinguish a genuine new billing window from a fresh server start.
+        // On a fresh start callBudget.date is "" — we must NOT clear apiHardStopped
+        // because the disk is wiped on every Render deploy and the hard stop would
+        // silently vanish before any API call is even attempted.
+        const genuineNewWindow = callBudget.date !== "" && callBudget.date < today;
+        callBudget   = { date: today, count: 0 };
+        email500Sent = false;
+        email900Sent = false;
         writeDiskCache("api_calls.json", callBudget);
-        const { start, end } = billingWindowTimes();
-        log("info", `Tank01 billing window reset — ${start} → ${end}`);
+        if (genuineNewWindow) {
+            apiHardStopped = false; // real new window → lift automatic stop
+            const { start, end } = billingWindowTimes();
+            log("info", `New billing window — hard stop lifted. ${start} → ${end}`);
+        } else {
+            // Fresh start: leave apiHardStopped as it was initialized
+            const { start, end } = billingWindowTimes();
+            log("info", `Tank01 billing window: ${start} → ${end} | hard stop: ${apiHardStopped}`);
+        }
     }
 
     // Hard stop: block all calls until window resets
     if (apiHardStopped) {
-        log("error", `API hard stopped at ${callBudget.count} calls — suspended until 22:54 UTC`);
         throw new Error("API calls suspended until billing window resets at 22:54 UTC");
     }
 
@@ -351,7 +360,7 @@ function weekToDate(week, year) {
 }
 
 async function loadSeasonSchedule() {
-    if (!RAPIDAPI_KEY) return;
+    if (!RAPIDAPI_KEY || apiHardStopped) return;
     const cacheFile = `schedule_${NFL_SEASON}.json`;
     const metaFile  = `schedule_${NFL_SEASON}_meta.json`;
     const cached    = readDiskCache(cacheFile);
@@ -444,19 +453,11 @@ async function fetchGamesForDate(dateStr) {
 // ── Fetch detailed box score for a single live game ───────────────────────────
 // Called only when a game is live and the scoreboard response lacks quarter/clock.
 async function fetchBoxScore(gameID) {
-    const body  = await tank01Get("/getNFLBoxScore", { gameID, playByPlay: "true" });
-    const info  = body?.gameInfo ?? body?.game ?? body ?? {};
-    const plays = Array.isArray(body?.plays) ? body.plays : [];
-    const game  = normalizeGame({ ...info, gameID });
-    // Fill lastPlay / field position from last play in the plays array if not in gameInfo
-    if (plays.length > 0) {
-        const lp = plays[plays.length - 1];
-        if (!game.lastPlay)   game.lastPlay  = pickStr(lp, "description", "playDescription", "desc") || null;
-        if (!game.down)       game.down      = pickStr(lp, "down") || null;
-        if (!game.yardsToGo)  game.yardsToGo = pickStr(lp, "yardsToGo", "yards_to_go") || null;
-        if (!game.yardLine)   game.yardLine  = pickStr(lp, "yardLine",  "yard_line") || null;
-    }
-    return game;
+    // playByPlay:"false" keeps the response compact (same object count, less data).
+    // lastPlay / down / yardLine come from gameInfo if the API includes them there.
+    const body = await tank01Get("/getNFLBoxScore", { gameID, playByPlay: "false" });
+    const info = body?.gameInfo ?? body?.game ?? body ?? {};
+    return normalizeGame({ ...info, gameID });
 }
 
 // ── Live game poller ──────────────────────────────────────────────────────────
@@ -470,10 +471,15 @@ async function pollLiveGames() {
     if (pollRunning || !RAPIDAPI_KEY) return;
     if (!isGameWindow()) return;
 
-    // Skip if we've loaded the schedule and today genuinely has no games
+    // Skip if the schedule is loaded and today has no entry at all
     const todayKey = todayStr().replace(/-/g,"");
-    if (Array.isArray(seasonSchedule[todayKey]) && seasonSchedule[todayKey].length === 0) {
-        log("info", "No games scheduled today — skipping live poll");
+    const schedLoaded = Object.keys(seasonSchedule).length > 0;
+    if (schedLoaded && !seasonSchedule[todayKey]) {
+        log("info", "Today not in season schedule — skipping live poll");
+        return;
+    }
+    if (schedLoaded && Array.isArray(seasonSchedule[todayKey]) && seasonSchedule[todayKey].length === 0) {
+        log("info", "No games today per schedule — skipping live poll");
         return;
     }
 
@@ -528,6 +534,7 @@ setInterval(pollLiveGames, LIVE_POLL_MS);
 
 // ── Team stats (1 API call) ───────────────────────────────────────────────────
 async function buildTeamStats() {
+    if (apiHardStopped) { log("info", "buildTeamStats skipped — API hard stopped"); return null; }
     log("info", "Fetching team stats (1 call)...");
     const body  = await tank01Get("/getNFLTeams", { teamStats: "true", topPerformers: "true" });
     const teams = body?.nflTeams ?? (Array.isArray(body) ? body : []);
@@ -594,6 +601,7 @@ function simplifyPos(pos = "") {
 }
 
 async function buildPlayerStats(teams) {
+    if (apiHardStopped) { log("info", "buildPlayerStats skipped — API hard stopped"); return null; }
     log("info", `Fetching player stats (${teams.length} calls)...`);
     const KEEP = new Set(["QB","RB","WR","TE","K","FB"]);
     const all  = [];
@@ -722,7 +730,7 @@ function scheduleWeeklyRefresh() {
 
 // ── Fantasy projections (getNFLProjections, 1 call/week) ─────────────────────
 async function fetchFantasyProjections(week = 1, seasonType = "reg") {
-    if (!RAPIDAPI_KEY) return;
+    if (!RAPIDAPI_KEY || apiHardStopped) return;
     log("info", `Fetching fantasy projections week ${week} (${seasonType})...`);
     try {
         const body = await tank01Get("/getNFLProjections", { week, season: NFL_SEASON, seasonType });
@@ -751,7 +759,7 @@ function normalizeInjuryStatus(raw = "") {
 }
 
 async function fetchInjuries() {
-    if (!RAPIDAPI_KEY) return;
+    if (!RAPIDAPI_KEY || apiHardStopped) return;
     const today = utcDateStr();
     if (injuryData.date === today && injuryData.list.length > 0) return;
     log("info", "Fetching injury report...");
@@ -827,7 +835,7 @@ function scheduleDailyInjuryCheck() {
 // ── Per-player game stats (getNFLGamesForPlayer, weekly) ──────────────────────
 // Called after buildPlayerStats — only fetches for players who have played games.
 async function enrichPlayerStatsFromGameLogs() {
-    if (!playerStats) return;
+    if (!playerStats || apiHardStopped) return;
     const SKILL = new Set(["QB","RB","WR","TE"]);
     const active = playerStats.filter(p => SKILL.has(p.pos) && p.games > 0);
     if (!active.length) { log("info", "enrichPlayerStatsFromGameLogs: no active skill players yet"); return; }
@@ -877,7 +885,7 @@ const ALL_TEAM_ABBRS = [
 ];
 
 async function loadTeamSchedules() {
-    if (!RAPIDAPI_KEY) return;
+    if (!RAPIDAPI_KEY || apiHardStopped) return;
     const todayKey = todayStr().replace(/-/g,"");
     const futureDates = Object.keys(seasonSchedule).filter(d => d >= todayKey);
     if (futureDates.length >= 5) { log("info", `Season schedule has ${futureDates.length} future dates — skipping team schedule fetch`); return; }
