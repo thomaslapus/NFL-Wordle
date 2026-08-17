@@ -460,6 +460,30 @@ async function fetchBoxScore(gameID) {
     return normalizeGame({ ...info, gameID });
 }
 
+async function fetchBettingOdds(gameID) {
+    const cacheKey = `odds_${gameID}.json`;
+    const cached = readDiskCache(cacheKey);
+    if (cached) return cached;
+    try {
+        const body = await tank01Get("/getNFLBettingOdds", { gameID });
+        const raw  = body?.body ?? body ?? {};
+        // Normalise across possible Tank01 field names
+        const odds = {
+            gameID,
+            homeML: parseFloat(raw.homeTeamMLOdds ?? raw.moneyLineHome ?? raw.homeML ?? "") || null,
+            awayML: parseFloat(raw.awayTeamMLOdds ?? raw.moneyLineAway ?? raw.awayML ?? "") || null,
+            homeSpread: parseFloat(raw.homeTeamSpread ?? raw.spreadHome ?? "") || null,
+            awaySpread: parseFloat(raw.awayTeamSpread ?? raw.spreadAway ?? "") || null,
+            overUnder:  parseFloat(raw.totalOver ?? raw.overUnder ?? "") || null,
+        };
+        writeDiskCache(cacheKey, odds);
+        return odds;
+    } catch (err) {
+        log("warn", `Odds fetch failed for ${gameID}: ${err.message}`);
+        return null;
+    }
+}
+
 // ── Live game poller ──────────────────────────────────────────────────────────
 // Runs every LIVE_POLL_MS. During game windows:
 //   - 1 call to getNFLGamesForDate for today's scoreboard
@@ -1137,6 +1161,21 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(200, { source: "api", game });
             } catch (err) {
                 return sendJson(502, { error: err.message });
+            }
+        }
+
+        // ── /api/odds?gameID=... ──────────────────────────────────────
+        // Returns cached moneyline odds for a single game. First call fetches
+        // from Tank01 (1 object); subsequent calls are served from disk cache.
+        if (urlPath === "/api/odds") {
+            const gameID = parsed.searchParams.get("gameID");
+            if (!gameID) return sendJson(400, { error: "gameID required" });
+            if (!RAPIDAPI_KEY) return sendJson(503, { status: "no-key" });
+            try {
+                const odds = await fetchBettingOdds(gameID);
+                return sendJson(200, odds ?? {}, 3600);
+            } catch (err) {
+                return sendJson(500, { error: err.message });
             }
         }
 

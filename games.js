@@ -49,6 +49,63 @@ const T = {
     TBD:["TBD", "TBD"],
 };
 
+// Primary colors for prediction bar
+const TEAM_COLORS = {
+    ARI:"#97233F", ATL:"#A71930", BAL:"#241773", BUF:"#00338D",
+    CAR:"#0085CA", CHI:"#0B162A", CIN:"#FB4F14", CLE:"#994C00",
+    DAL:"#003594", DEN:"#FB4F14", DET:"#0076B6", GB: "#203731",
+    HOU:"#03202F", IND:"#002C5F", JAX:"#006778", KC: "#E31837",
+    LAC:"#0080C6", LAR:"#003594", LV: "#A5ACAF", MIA:"#008E97",
+    MIN:"#4F2683", NE: "#002244", NO: "#9F8958", NYG:"#0B2265",
+    NYJ:"#125740", PHI:"#004C54", PIT:"#FFB612", SF: "#AA0000",
+    SEA:"#002244", TB: "#D50A0A", TEN:"#0C2340", WAS:"#5A1414",
+};
+
+// Converts a quarter number to its display label (handles OT)
+function quarterLabel(q) {
+    if (!q) return "";
+    const n = parseInt(q);
+    if (n === 5) return "OT";
+    if (n > 5) return `${n - 4}OT`;
+    return `Q${n}`;
+}
+
+// American moneyline → win probability (removes vig, returns 0–100 integers)
+function oddsToWinPct(homeML, awayML) {
+    function impl(ml) {
+        const n = parseFloat(ml);
+        if (isNaN(n)) return NaN;
+        return n < 0 ? (-n) / (-n + 100) : 100 / (n + 100);
+    }
+    const h = impl(homeML), a = impl(awayML);
+    if (isNaN(h) || isNaN(a) || h + a === 0) return null;
+    const total = h + a;
+    return { home: Math.round((h / total) * 100), away: Math.round((a / total) * 100) };
+}
+
+// Attempt to reformat a raw lastPlay string into the user-friendly template.
+// Falls back to the raw string when parsing fails.
+function formatLastPlay(game) {
+    if (!game.lastPlay) return null;
+    const raw = game.lastPlay;
+    const qtrl = quarterLabel(game.quarter);
+    const ctx  = [qtrl, game.clock].filter(Boolean).join(" ");
+    const ctxStr = ctx ? ` (${ctx})` : "";
+
+    // "P.Mahomes pass complete to T.Kelce for 23 yards"
+    const m1 = raw.match(/^([\w.']+(?:\s[\w.']+)?)\s+pass(?:es)?\s+(?:complete[sd]?\s+)?to\s+([\w.']+(?:\s[\w.']+)?)\s+for\s+(-?\d+)\s+yards?/i);
+    if (m1) return `${m1[1]} throws ${m1[3]} yds to ${m1[2]}${ctxStr}`;
+
+    // "[Name] rush for X yards"
+    const m2 = raw.match(/^([\w.']+(?:\s[\w.']+)?)\s+rush(?:es)?\s+for\s+(-?\d+)\s+yards?/i);
+    if (m2) return `${m2[1]} rushes for ${m2[2]} yds${ctxStr}`;
+
+    // "[Name] pass incomplete"
+    if (/incomplete/i.test(raw)) return `Incomplete pass${ctxStr}`;
+
+    return `${raw}${ctxStr}`;
+}
+
 // ── Schedule dates — calendar structure only, no game data ────────────────────
 // Game matchup data comes from the server via /api/games?date=YYYYMMDD.
 const SCHEDULE_DATES = [
@@ -124,12 +181,12 @@ const SCHEDULE_DATES = [
     { date:"20270110", label:"Sun Jan 10",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
     { date:"20270111", label:"Mon Jan 11",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
     // Playoffs
-    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
-    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
-    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
-    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Divisional Round" },
-    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Divisional Round" },
-    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Conference Championships" },
+    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"Wildcard",    fullLabel:"Wild Card Weekend" },
+    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"Wildcard",    fullLabel:"Wild Card Weekend" },
+    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"Wildcard",    fullLabel:"Wild Card Weekend" },
+    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
+    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
+    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"Conference",  fullLabel:"Conference Championships" },
     { date:"20270214", label:"Sun Feb 14",  weekType:"Playoffs",  weekLabel:"Super Bowl",  fullLabel:"Super Bowl LXI" },
 ];
 
@@ -212,7 +269,8 @@ function buildCalendar() {
         else                          btn.classList.add("future");
 
         if (day.weekType === "Playoffs") {
-            btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
+            const dateDisplay = day.weekLabel === "Super Bowl" ? day.label : "TBD";
+            btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${dateDisplay}</span>`;
         } else if (day.holiday) {
             btn.innerHTML = `<span class="cal-week-type post">${day.holiday}</span><span class="cal-day-label">${day.label}</span>`;
         } else {
@@ -303,11 +361,12 @@ async function renderGamesForDate(dateStr, grid) {
         // Restore expanded state that survived the re-render
         for (const gid of expandedGameIDs) {
             const card = grid.querySelector(`.game-card--live[data-gameid="${gid}"]`);
-            if (card) {
-                card.classList.add("game-card--expanded");
-                const hint = card.querySelector(".gc-expand-hint");
-                if (hint) hint.textContent = "collapse ◂";
-            }
+            if (card) card.classList.add("game-card--expanded");
+        }
+
+        // Load prediction bars async (one API call per game, disk-cached)
+        for (const g of sorted) {
+            if (g.gameID) loadOddsBar(g.gameID, g.homeTeam, g.awayTeam);
         }
     } catch (err) {
         grid.innerHTML = `<div class="no-games">Failed to load game data.</div>`;
@@ -360,6 +419,7 @@ function renderUpcoming(game) {
       </div>
     </div>
     ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span><span>${stadium}</span></div></div>` : ""}
+    <div id="odds-${game.gameID}" class="gc-pred-placeholder"></div>
   </div>
 </div>`;
 }
@@ -411,10 +471,10 @@ function renderLive(game) {
     const stadium  = T[home]?.[1] ?? "";
     const scoreAway = game.awayScore ?? "-";
     const scoreHome = game.homeScore ?? "-";
-    const qtr   = game.quarter ? `Q${game.quarter}` : "";
-    const clock  = game.clock  ? game.clock : "";
-    const qtrClock = qtr && clock ? `${qtr} · ${clock}` : (qtr || clock || "Live");
-    const poss   = game.possession && game.possession !== "TBD" ? game.possession.toUpperCase() : null;
+    const qtr      = quarterLabel(game.quarter);
+    const clock     = game.clock ?? "";
+    const qtrClock  = qtr && clock ? `${qtr} · ${clock}` : (qtr || clock || "Live");
+    const poss      = game.possession && game.possession !== "TBD" ? game.possession.toUpperCase() : null;
     const awayHasBall = poss && poss === away.toUpperCase();
     const homeHasBall = poss && poss === home.toUpperCase();
 
@@ -422,19 +482,36 @@ function renderLive(game) {
     const downDist = (game.down && game.yardsToGo)
         ? `${ordinal(game.down)} &amp; ${game.yardsToGo}${game.yardLine ? ` · ${game.yardLine}` : ""}`
         : (game.yardLine ? `At ${game.yardLine}` : "");
-    const lastPlayHtml = game.lastPlay
-        ? `<div class="gc-lastplay"><span class="gc-lastplay-label">Last play</span><span class="gc-lastplay-desc">${game.lastPlay}</span></div>`
-        : `<div class="gc-lastplay gc-lastplay--empty">Play data updates every ~2 min</div>`;
+
+    // Last play: formatted summary + raw API data
+    const formattedPlay = formatLastPlay(game);
+    const playDataFields = [
+        game.quarter   ? ["Quarter", qtr]               : null,
+        game.clock     ? ["Clock",   game.clock]         : null,
+        game.down && game.yardsToGo ? ["Down", `${ordinal(game.down)} & ${game.yardsToGo}`] : null,
+        game.yardLine  ? ["Yard Line", game.yardLine]    : null,
+        game.possession ? ["Possession", game.possession] : null,
+        game.lastPlay  ? ["Raw",     game.lastPlay]      : null,
+    ].filter(Boolean);
+    const playDataHtml = playDataFields.length
+        ? `<div class="gc-play-data">${playDataFields.map(([k,v]) =>
+            `<div class="gc-play-row"><span class="gc-play-key">${k}</span><span class="gc-play-val">${v}</span></div>`).join("")}</div>`
+        : "";
+
+    const lastPlaySection = formattedPlay
+        ? `<div class="gc-lastplay">
+             <span class="gc-lastplay-label">Last Play</span>
+             <span class="gc-lastplay-desc">${formattedPlay}</span>
+             ${playDataHtml}
+           </div>`
+        : `<div class="gc-lastplay gc-lastplay--empty">Play data updates every ~2 min${playDataHtml}</div>`;
 
     return `
 <div class="game-card game-card--live" data-gameid="${game.gameID}">
   <div class="gc-live-summary">
     <div class="gc-header">
       <span class="gc-live-info">● LIVE${qtr ? ` · ${qtr}` : ""}</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="gc-status-badge live">Live</span>
-        <span class="gc-expand-hint">expand ▸</span>
-      </div>
+      <span class="gc-status-badge live">Live</span>
     </div>
     <div class="gc-body">
       <div class="gc-teams">
@@ -465,11 +542,12 @@ function renderLive(game) {
       </div>
       ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
     </div>
+    <div id="odds-${game.gameID}" class="gc-pred-placeholder"></div>
   </div>
   <div class="gc-live-detail">
     <div class="gc-field">${fieldSvg}</div>
     ${downDist ? `<div class="gc-down-dist">${downDist}</div>` : ""}
-    ${lastPlayHtml}
+    ${lastPlaySection}
   </div>
 </div>`;
 }
@@ -515,8 +593,39 @@ function renderFinal(game) {
       </div>
     </div>
     ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
+    <div id="odds-${game.gameID}" class="gc-pred-placeholder"></div>
   </div>
 </div>`;
+}
+
+// ── Odds bar rendering ────────────────────────────────────────────────────────
+async function loadOddsBar(gameID, homeTeam, awayTeam) {
+    const el = document.getElementById(`odds-${gameID}`);
+    if (!el) return;
+    try {
+        const res = await fetch(`/api/odds?gameID=${gameID}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.homeML && !data.awayML) return;
+
+        const pct = oddsToWinPct(data.homeML, data.awayML);
+        if (!pct) return;
+
+        const hClr = TEAM_COLORS[homeTeam] || "#4488ff";
+        const aClr = TEAM_COLORS[awayTeam] || "#ff8844";
+
+        el.innerHTML = `
+<div class="gc-pred-bar-wrap">
+  <div class="gc-pred-bar">
+    <div class="gc-pred-seg" style="width:${pct.away}%;background:${aClr}cc">
+      <span class="gc-pred-pct">${pct.away}%</span>
+    </div>
+    <div class="gc-pred-seg gc-pred-seg--right" style="width:${pct.home}%;background:${hClr}cc">
+      <span class="gc-pred-pct">${pct.home}%</span>
+    </div>
+  </div>
+</div>`;
+    } catch { /* odds unavailable — bar stays hidden */ }
 }
 
 // ── Expandable live cards ─────────────────────────────────────────────────────
@@ -527,8 +636,6 @@ function setupLiveCardToggle() {
         const gameId = card.dataset.gameid;
         if (!gameId) return;
         const isNowExpanded = card.classList.toggle("game-card--expanded");
-        const hint = card.querySelector(".gc-expand-hint");
-        if (hint) hint.textContent = isNowExpanded ? "collapse ◂" : "expand ▸";
         if (isNowExpanded) expandedGameIDs.add(gameId);
         else expandedGameIDs.delete(gameId);
     });

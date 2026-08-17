@@ -495,6 +495,74 @@ main {
     color: var(--text-dim);
 }
 
+/* ── Prediction bar ── */
+.gc-pred-placeholder { /* empty until odds load */ }
+.gc-pred-bar-wrap {
+    padding: 8px 14px 12px;
+    border-top: 1px solid var(--border);
+}
+.gc-pred-bar {
+    display: flex;
+    height: 20px;
+    border-radius: 4px;
+    overflow: hidden;
+    gap: 2px;
+}
+.gc-pred-seg {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 6px;
+    border-radius: 3px 0 0 3px;
+    min-width: 28px;
+    transition: width 0.4s ease;
+}
+.gc-pred-seg--right {
+    justify-content: flex-end;
+    padding-left: 0;
+    padding-right: 6px;
+    border-radius: 0 3px 3px 0;
+}
+.gc-pred-pct {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    white-space: nowrap;
+}
+
+/* ── Play data (expanded live card) ── */
+.gc-play-data {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+}
+.gc-play-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.68rem;
+    line-height: 1.4;
+}
+.gc-play-key {
+    flex-shrink: 0;
+    width: 72px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 0.6rem;
+}
+.gc-play-val {
+    color: var(--text);
+    word-break: break-word;
+}
+
 /* ── Final game card (muted) ── */
 .game-card--final {
     opacity: 0.72;
