@@ -145,3 +145,35 @@
         });
     });
 })();
+
+// ── Data freshness pill ───────────────────────────────────────────────────────
+(function () {
+    document.addEventListener("DOMContentLoaded", async () => {
+        const main = document.querySelector("main");
+        if (!main) return;
+
+        const wrap = document.createElement("div");
+        wrap.id = "freshness-wrap";
+        main.insertBefore(wrap, main.firstChild);
+
+        try {
+            const data = await fetch("/api/data-freshness").then(r => r.json());
+            const { dataWeek, currentWeek, upToDate } = data;
+            if (!dataWeek) return;
+
+            const pill = document.createElement("div");
+            pill.id = "freshness-pill";
+
+            if (upToDate) {
+                pill.className = "fresh";
+                pill.innerHTML = `<span class="fp-dot"></span>Stats current through Wk ${dataWeek}`;
+            } else {
+                const behind = currentWeek - dataWeek;
+                pill.className = "stale";
+                pill.innerHTML = `<span class="fp-dot"></span>Stats through Wk ${dataWeek} &nbsp;·&nbsp; Wk ${currentWeek - 1} pending`;
+            }
+
+            wrap.appendChild(pill);
+        } catch (_) {}
+    });
+})();

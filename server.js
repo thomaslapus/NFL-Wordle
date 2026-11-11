@@ -1983,6 +1983,23 @@ const server = http.createServer(async (req, res) => {
             }
         }
 
+        // ── /api/data-freshness ───────────────────────────────────────
+        if (urlPath === "/api/data-freshness") {
+            if (!nflDb) return sendJson(200, { dataWeek: 0, currentWeek: 1, upToDate: false }, 300);
+            const SEASON_START = new Date("2026-09-09").getTime();
+            const MS_PER_WEEK  = 7 * 86400 * 1000;
+            const currentWeek  = Math.max(1, Math.floor((Date.now() - SEASON_START) / MS_PER_WEEK) + 1);
+            // Last week with >= 400 distinct players
+            const row = nflDb.prepare(`
+                SELECT MAX(week) as w FROM (
+                    SELECT week FROM game_logs WHERE season=2026 AND week > 0
+                    GROUP BY week HAVING COUNT(DISTINCT espn_id) >= 400
+                )
+            `).get();
+            const dataWeek = row?.w ?? 0;
+            return sendJson(200, { dataWeek, currentWeek, upToDate: dataWeek >= currentWeek - 1, season: 2026 }, 3600);
+        }
+
         // ── /api/top-performers?season=YYYY ───────────────────────────
         if (urlPath === "/api/top-performers") {
             if (!nflDb) return sendJson(503, { error: "DB unavailable" });
