@@ -22,7 +22,7 @@ const DB_PATH        = path.join(__dirname, "..", "data", "nfl.db");
 const PROGRESS_FILE  = path.join(__dirname, "seed-2026-progress.json");
 const API_CALLS_FILE = path.join(__dirname, "..", "data", "api_calls.json");
 const SEASON         = 2026;
-const HARD_STOP      = 900;
+const HARD_STOP      = 1000;
 const MAX_DATE       = 20261111; // through Week 9, Nov 11
 const MAX_WEEK       = 9;
 
