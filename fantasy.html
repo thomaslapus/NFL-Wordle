@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Fantasy football — My Team and Rankings — Mid Stats">
+    <meta name="description" content="Fantasy football — I Suck at Fantasy">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-    <title>Fantasy — Mid Stats</title>
-    <link rel="stylesheet" href="shared.css?v=3">
-    <link rel="stylesheet" href="fantasy.css?v=5">
-    <script src="dev-banner.js"></script>
+    <title>Fantasy — I Suck at Fantasy</title>
+    <link rel="stylesheet" href="shared.css?v=4">
+    <link rel="stylesheet" href="fantasy.css?v=11">
+    <script>
+        (function(){var t=localStorage.getItem("theme")||"dark";document.documentElement.setAttribute("data-theme",t);})();
+    </script>
 </head>
 <body>
 
     <nav id="navbar">
-        <a href="/" class="nav-brand" title="Mid Stats">
+        <a href="/" class="nav-brand" title="I Suck at Fantasy">
             <span class="nav-emoji">🏈</span>
-            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
+            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">ISAF</span>
         </a>
         <a href="/" class="nav-link" title="Home">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
@@ -24,6 +26,10 @@
         <a href="/games.html" class="nav-link" title="Games">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
             <span class="nav-label">Games</span>
+        </a>
+        <a href="/standings.html" class="nav-link" title="Standings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span class="nav-label">Standings</span>
         </a>
         <a href="/stats.html" class="nav-link" title="NFL Stats">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
@@ -37,7 +43,16 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             <span class="nav-label">Wordle</span>
         </a>
+        <button class="nav-icon-btn auth-nav-btn" id="nav-auth-btn" title="Sign in">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <div class="nav-sep"></div>
+        <button class="nav-icon-btn gsearch-btn" title="Search players &amp; teams" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="nav-icon-btn theme-toggle-btn" aria-label="Toggle theme"></button>
     </nav>
+    <script src="shared.js?v=1"></script>
 
     <main>
 
@@ -45,6 +60,7 @@
         <div class="page-tabs">
             <button class="page-tab active" data-panel="panel-myteam">My Team</button>
             <button class="page-tab" data-panel="panel-rankings">Rankings</button>
+            <button class="page-tab" data-panel="panel-tradevalues">Trade Calculator</button>
         </div>
 
         <!-- ===== MY TEAM ===== -->
@@ -211,8 +227,205 @@
 
         </div>
 
+        <!-- ===== TRADE CALCULATOR ===== -->
+        <div id="panel-tradevalues" class="page-panel hidden">
+
+            <!-- League connect bar -->
+            <div class="tc-league-bar">
+                <div class="tc-league-field">
+                    <label class="tc-ctrl-label">ESPN League ID</label>
+                    <input type="text" id="tc-league-id" class="tc-league-input" placeholder="e.g. 1534180398" autocomplete="off">
+                </div>
+                <div class="tc-league-field tc-league-field--sm">
+                    <label class="tc-ctrl-label">Season</label>
+                    <input type="text" id="tc-league-season" class="tc-league-input" placeholder="2026" value="2026" autocomplete="off">
+                </div>
+                <button class="tc-league-btn" id="tc-league-connect-btn">Load League</button>
+                <button class="tc-auth-toggle" id="tc-auth-toggle" title="Private league auth">🔒 Private</button>
+                <span class="tc-league-status" id="tc-league-status"></span>
+                <button class="tc-settings-toggle" id="tc-settings-btn" title="Algorithm settings">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    Algorithm
+                </button>
+            </div>
+
+            <!-- Private league auth drawer -->
+            <div class="tc-auth-drawer hidden" id="tc-auth-drawer">
+                <div class="tc-auth-inner">
+                    <p class="tc-auth-desc">Private ESPN leagues require two cookies from your browser. <strong>In Chrome:</strong> open DevTools → Application → Cookies → <code>fantasy.espn.com</code> → copy the values below.</p>
+                    <div class="tc-auth-fields">
+                        <div class="tc-league-field" style="flex:1">
+                            <label class="tc-ctrl-label">ESPN_S2 cookie</label>
+                            <input type="password" id="tc-espn-s2" class="tc-league-input" placeholder="Paste ESPN_S2 value…" autocomplete="off" style="width:100%">
+                        </div>
+                        <div class="tc-league-field" style="width:260px">
+                            <label class="tc-ctrl-label">SWID cookie</label>
+                            <input type="text" id="tc-swid" class="tc-league-input" placeholder="{XXXXXXXX-…}" autocomplete="off" style="width:100%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Algorithm settings drawer -->
+            <div class="tc-settings-drawer hidden" id="tc-settings-drawer">
+                <div class="tc-settings-inner">
+                    <div class="tc-settings-title">Algorithm Weights</div>
+                    <div class="tc-sliders-grid">
+                        <div class="tc-slider-row">
+                            <label class="tc-slider-label">Age Penalty</label>
+                            <div class="tc-slider-wrap">
+                                <input type="range" class="tc-slider" id="sl-age" min="0" max="2" step="0.1" value="1">
+                                <span class="tc-slider-val" id="sl-age-val">1.0×</span>
+                            </div>
+                            <div class="tc-slider-desc">How much youth/age affects value. 0 = ignore age, 2 = strong penalty</div>
+                        </div>
+                        <div class="tc-slider-row">
+                            <label class="tc-slider-label">Position Scarcity</label>
+                            <div class="tc-slider-wrap">
+                                <input type="range" class="tc-slider" id="sl-scarcity" min="0" max="2" step="0.1" value="1">
+                                <span class="tc-slider-val" id="sl-scarcity-val">1.0×</span>
+                            </div>
+                            <div class="tc-slider-desc">Premium for scarce positions (QB/TE). 0 = equal, 2 = strong premium</div>
+                        </div>
+                        <div class="tc-slider-row">
+                            <label class="tc-slider-label">Sample Confidence</label>
+                            <div class="tc-slider-wrap">
+                                <input type="range" class="tc-slider" id="sl-sample" min="0" max="2" step="0.1" value="1">
+                                <span class="tc-slider-val" id="sl-sample-val">1.0×</span>
+                            </div>
+                            <div class="tc-slider-desc">Discount for few games played. 0 = trust small samples, 2 = heavy regression</div>
+                        </div>
+                        <div class="tc-slider-row">
+                            <label class="tc-slider-label">Injury Risk</label>
+                            <div class="tc-slider-wrap">
+                                <input type="range" class="tc-slider" id="sl-injury" min="0" max="2" step="0.1" value="1">
+                                <span class="tc-slider-val" id="sl-injury-val">1.0×</span>
+                            </div>
+                            <div class="tc-slider-desc">Penalty for injured/questionable players. 0 = ignore injuries, 2 = heavy penalty</div>
+                        </div>
+                    </div>
+                    <button class="tc-reset-btn" id="tc-reset-btn">Reset to defaults</button>
+                </div>
+            </div>
+
+            <!-- Two-team rosters -->
+            <div class="tc-teams-row">
+
+                <!-- Team 1 -->
+                <div class="tc-team-box" id="tc-box-t1">
+                    <div class="tc-team-header" id="tc-header-t1">
+                        <button class="tc-team-selector" id="tc-team-selector-t1" data-side="t1">
+                            <div class="tc-team-meta">
+                                <span class="tc-team-name-display" id="tc-team-name-t1">Select a Team</span>
+                                <span class="tc-team-record-display" id="tc-team-record-t1"></span>
+                            </div>
+                            <svg class="tc-team-chevron" viewBox="0 0 12 8" width="11" height="7" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </button>
+                        <span class="tc-team-hint">Click players to add to trade</span>
+                        <div class="tc-team-dropdown" id="tc-team-drop-t1"></div>
+                    </div>
+                    <div class="tc-roster" id="tc-roster-t1">
+                        <div class="tc-empty-msg">Load a league and select a team above</div>
+                    </div>
+                </div>
+
+                <!-- VS divider -->
+                <div class="tc-vs">VS</div>
+
+                <!-- Team 2 -->
+                <div class="tc-team-box" id="tc-box-t2">
+                    <div class="tc-team-header" id="tc-header-t2">
+                        <button class="tc-team-selector" id="tc-team-selector-t2" data-side="t2">
+                            <div class="tc-team-meta">
+                                <span class="tc-team-name-display" id="tc-team-name-t2">Select a Team</span>
+                                <span class="tc-team-record-display" id="tc-team-record-t2"></span>
+                            </div>
+                            <svg class="tc-team-chevron" viewBox="0 0 12 8" width="11" height="7" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </button>
+                        <span class="tc-team-hint">Click players to add to trade</span>
+                        <div class="tc-team-dropdown" id="tc-team-drop-t2"></div>
+                    </div>
+                    <div class="tc-roster" id="tc-roster-t2">
+                        <div class="tc-empty-msg">Load a league and select a team above</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Trade Summary -->
+            <div class="tc-summary-card" id="tc-summary-card">
+                <div class="tc-summary-header">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+                    Trade Summary
+                </div>
+                <div class="tc-summary-body" id="tc-summary-body">
+                    <div class="tc-summary-empty">Click players in each roster to build your trade</div>
+                </div>
+            </div>
+
+            <!-- Trade Rating -->
+            <div class="tc-rating-card" id="tc-rating-card">
+                <div class="tc-rating-header">Trade Rating</div>
+                <div class="tc-rating-body" id="tc-rating-body">
+                    <div class="tc-gauge-wrap">
+                        <div class="tc-gauge-track">
+                            <div class="tc-gauge-fill" id="tc-gauge-fill" style="width:0%"></div>
+                            <div class="tc-gauge-needle" id="tc-gauge-needle" style="left:0%"></div>
+                        </div>
+                        <div class="tc-gauge-labels">
+                            <span>One-sided</span><span>Uneven</span><span>Fair</span>
+                        </div>
+                    </div>
+                    <div class="tc-score-row">
+                        <div class="tc-score-num" id="tc-score-num">—</div>
+                        <div class="tc-score-verdict" id="tc-score-verdict">Select players on both sides to rate this trade</div>
+                    </div>
+                    <div class="tc-value-breakdown" id="tc-value-breakdown"></div>
+                </div>
+            </div>
+
+        </div>
+
     </main>
 
-    <script src="fantasy.js?v=6" defer></script>
+    <!-- Login / Register Modal -->
+    <div class="auth-modal-overlay hidden" id="auth-modal-overlay">
+        <div class="auth-modal" id="auth-modal">
+            <button class="auth-modal-close" id="auth-modal-close">✕</button>
+            <div class="auth-modal-logo">🏈</div>
+            <h2 class="auth-modal-title" id="auth-modal-title">Sign In</h2>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Sign In</button>
+                <button class="auth-tab" data-tab="register">Create Account</button>
+            </div>
+            <form class="auth-form" id="auth-form" autocomplete="off">
+                <div class="auth-field" id="auth-username-field" style="display:none">
+                    <label class="auth-label">Username</label>
+                    <input type="text" class="auth-input" id="auth-username" placeholder="Choose a username" autocomplete="off">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label">Email</label>
+                    <input type="email" class="auth-input" id="auth-email" placeholder="you@example.com" autocomplete="off">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label">Password</label>
+                    <input type="password" class="auth-input" id="auth-password" placeholder="••••••••" autocomplete="off">
+                </div>
+                <div class="auth-error hidden" id="auth-error"></div>
+                <button type="submit" class="auth-submit" id="auth-submit">Sign In</button>
+            </form>
+            <div class="auth-user-panel hidden" id="auth-user-panel">
+                <div class="auth-avatar" id="auth-avatar-large"></div>
+                <div class="auth-welcome" id="auth-welcome-text">Welcome!</div>
+                <button class="auth-signout-btn" id="auth-signout-btn">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const s = document.createElement('script');
+        s.src = 'fantasy.js?v=' + Date.now();
+        document.head.appendChild(s);
+    </script>
 </body>
 </html>

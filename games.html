@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="NFL game scores and schedule — Mid Stats">
+    <meta name="description" content="NFL game scores and schedule — I Suck at Fantasy">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-    <title>Games — Mid Stats</title>
-    <link rel="stylesheet" href="shared.css?v=3">
-    <link rel="stylesheet" href="games.css?v=8">
-    <script src="dev-banner.js"></script>
+    <title>Games — I Suck at Fantasy</title>
+    <link rel="stylesheet" href="shared.css?v=4">
+    <link rel="stylesheet" href="games.css?v=22">
+    <script>
+        (function(){var t=localStorage.getItem("theme")||"dark";document.documentElement.setAttribute("data-theme",t);})();
+    </script>
 </head>
 <body>
 
     <nav id="navbar">
-        <a href="/" class="nav-brand" title="Mid Stats">
+        <a href="/" class="nav-brand" title="I Suck at Fantasy">
             <span class="nav-emoji">🏈</span>
-            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
+            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">ISAF</span>
         </a>
         <a href="/" class="nav-link" title="Home">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
@@ -24,6 +26,10 @@
         <a href="/games.html" class="nav-link active" title="Games">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
             <span class="nav-label">Games</span>
+        </a>
+        <a href="/standings.html" class="nav-link" title="Standings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span class="nav-label">Standings</span>
         </a>
         <a href="/stats.html" class="nav-link" title="NFL Stats">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
@@ -37,7 +43,13 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             <span class="nav-label">Wordle</span>
         </a>
+        <div class="nav-sep"></div>
+        <button class="nav-icon-btn gsearch-btn" title="Search players &amp; teams" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="nav-icon-btn theme-toggle-btn" aria-label="Toggle theme"></button>
     </nav>
+    <script src="shared.js?v=1"></script>
 
     <main>
         <!-- Calendar scroll bar -->
@@ -54,6 +66,10 @@
         <div id="games-grid"></div>
     </main>
 
-    <script src="games.js?v=11" defer></script>
+    <script>
+        const s = document.createElement('script');
+        s.src = 'games.js?v=' + Date.now();
+        document.head.appendChild(s);
+    </script>
 </body>
 </html>

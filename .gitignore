@@ -1,4 +1,14 @@
 node_modules/
 .env
 .DS_Store
-data/
+
+# SQLite WAL/SHM temp files — never commit these
+data/*.db-shm
+data/*.db-wal
+
+# Local-only data caches — not needed on Render
+data/*.json
+
+# Seed/update script progress files
+db/seed-2026-progress.json
+db/*.json

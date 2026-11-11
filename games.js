@@ -12,6 +12,19 @@ const TODAY = todayDateStr();
 // ESPN CDN team logos
 const ESPN_LOGO = abbr => `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`;
 
+// Primary team colors — dark neon: saturated, vivid, not glowing
+const TEAM_COLORS = {
+    ARI:"#CC0030", ATL:"#CC002C", BAL:"#5C18CC", BUF:"#003ECC",
+    CAR:"#0080CC", CHI:"#CC4000", CIN:"#CC4400", CLE:"#CC3300",
+    DAL:"#003EBB", DEN:"#CC4400", DET:"#0077CC", GB: "#116630",
+    HOU:"#083366", IND:"#002EAA", JAX:"#007799", KC: "#CC0020",
+    LAC:"#0066CC", LAR:"#0033BB", LV: "#606070", MIA:"#00AACC",
+    MIN:"#5511AA", NE: "#0C2B99", NO: "#AA8822", NYG:"#002299",
+    NYJ:"#0E6633", PHI:"#006666", PIT:"#DDAA00", SEA:"#112288",
+    SF: "#BB0011", TB: "#CC0011", TEN:"#0C3399", WAS:"#771111",
+    TBD:"#555566",
+};
+
 // Static team name + stadium lookup (used to fill gaps when API omits them)
 const T = {
     ARI:["Arizona Cardinals",     "State Farm Stadium, Glendale AZ"],
@@ -48,63 +61,6 @@ const T = {
     WAS:["Washington Commanders",  "Northwest Stadium, Landover MD"],
     TBD:["TBD", "TBD"],
 };
-
-// Primary colors for prediction bar
-const TEAM_COLORS = {
-    ARI:"#97233F", ATL:"#A71930", BAL:"#241773", BUF:"#00338D",
-    CAR:"#0085CA", CHI:"#0B162A", CIN:"#FB4F14", CLE:"#994C00",
-    DAL:"#003594", DEN:"#FB4F14", DET:"#0076B6", GB: "#203731",
-    HOU:"#03202F", IND:"#002C5F", JAX:"#006778", KC: "#E31837",
-    LAC:"#0080C6", LAR:"#003594", LV: "#A5ACAF", MIA:"#008E97",
-    MIN:"#4F2683", NE: "#002244", NO: "#9F8958", NYG:"#0B2265",
-    NYJ:"#125740", PHI:"#004C54", PIT:"#FFB612", SF: "#AA0000",
-    SEA:"#002244", TB: "#D50A0A", TEN:"#0C2340", WAS:"#5A1414",
-};
-
-// Converts a quarter number to its display label (handles OT)
-function quarterLabel(q) {
-    if (!q) return "";
-    const n = parseInt(q);
-    if (n === 5) return "OT";
-    if (n > 5) return `${n - 4}OT`;
-    return `Q${n}`;
-}
-
-// American moneyline → win probability (removes vig, returns 0–100 integers)
-function oddsToWinPct(homeML, awayML) {
-    function impl(ml) {
-        const n = parseFloat(ml);
-        if (isNaN(n)) return NaN;
-        return n < 0 ? (-n) / (-n + 100) : 100 / (n + 100);
-    }
-    const h = impl(homeML), a = impl(awayML);
-    if (isNaN(h) || isNaN(a) || h + a === 0) return null;
-    const total = h + a;
-    return { home: Math.round((h / total) * 100), away: Math.round((a / total) * 100) };
-}
-
-// Attempt to reformat a raw lastPlay string into the user-friendly template.
-// Falls back to the raw string when parsing fails.
-function formatLastPlay(game) {
-    if (!game.lastPlay) return null;
-    const raw = game.lastPlay;
-    const qtrl = quarterLabel(game.quarter);
-    const ctx  = [qtrl, game.clock].filter(Boolean).join(" ");
-    const ctxStr = ctx ? ` (${ctx})` : "";
-
-    // "P.Mahomes pass complete to T.Kelce for 23 yards"
-    const m1 = raw.match(/^([\w.']+(?:\s[\w.']+)?)\s+pass(?:es)?\s+(?:complete[sd]?\s+)?to\s+([\w.']+(?:\s[\w.']+)?)\s+for\s+(-?\d+)\s+yards?/i);
-    if (m1) return `${m1[1]} throws ${m1[3]} yds to ${m1[2]}${ctxStr}`;
-
-    // "[Name] rush for X yards"
-    const m2 = raw.match(/^([\w.']+(?:\s[\w.']+)?)\s+rush(?:es)?\s+for\s+(-?\d+)\s+yards?/i);
-    if (m2) return `${m2[1]} rushes for ${m2[2]} yds${ctxStr}`;
-
-    // "[Name] pass incomplete"
-    if (/incomplete/i.test(raw)) return `Incomplete pass${ctxStr}`;
-
-    return `${raw}${ctxStr}`;
-}
 
 // ── Schedule dates — calendar structure only, no game data ────────────────────
 // Game matchup data comes from the server via /api/games?date=YYYYMMDD.
@@ -181,19 +137,98 @@ const SCHEDULE_DATES = [
     { date:"20270110", label:"Sun Jan 10",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
     { date:"20270111", label:"Mon Jan 11",  weekType:"Regular",   weekLabel:"Week 18", fullLabel:"Regular Season Week 18" },
     // Playoffs
-    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"Wildcard",    fullLabel:"Wild Card Weekend" },
-    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"Wildcard",    fullLabel:"Wild Card Weekend" },
-    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"Wildcard",    fullLabel:"Wild Card Weekend" },
-    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
-    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"Divisional",  fullLabel:"Divisional Round" },
-    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"Conference",  fullLabel:"Conference Championships" },
+    { date:"20270117", label:"Sat Jan 17",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
+    { date:"20270118", label:"Sun Jan 18",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
+    { date:"20270119", label:"Mon Jan 19",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Wild Card Weekend" },
+    { date:"20270124", label:"Sat Jan 24",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Divisional Round" },
+    { date:"20270125", label:"Sun Jan 25",  weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Divisional Round" },
+    { date:"20270201", label:"Sun Feb 1",   weekType:"Playoffs",  weekLabel:"TBD",         fullLabel:"Conference Championships" },
     { date:"20270214", label:"Sun Feb 14",  weekType:"Playoffs",  weekLabel:"Super Bowl",  fullLabel:"Super Bowl LXI" },
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let activeIdx    = 0;
 let liveRefreshInterval = null;
-const expandedGameIDs = new Set(); // persists across 60-s re-renders
+const expandedGameIDs = new Set();
+const boxscoreCache   = new Map();
+let gameTeamStats = {};
+
+async function loadGameTeamStats() {
+    try {
+        const r = await fetch("/api/team-stats");
+        if (!r.ok) return;
+        const data = await r.json();
+        gameTeamStats = {};
+        for (const t of (Array.isArray(data) ? data : [])) {
+            if (t.abbr) gameTeamStats[t.abbr] = t;
+        }
+    } catch (_) {}
+}
+
+// Pre-game win probability using each team's current win percentage.
+// Simple logit-style model: win% difference → probability.
+function preGameWinProb(away, home) {
+    const at = gameTeamStats[away];
+    const ht = gameTeamStats[home];
+    if (!at && !ht) return null;
+    const awayW = at ? (+(at.won||0) / Math.max(1, +(at.won||0) + +(at.lost||0) + +(at.tied||0))) : 0.5;
+    const homeW = ht ? (+(ht.won||0) / Math.max(1, +(ht.won||0) + +(ht.lost||0) + +(ht.tied||0))) : 0.5;
+    // Home-field advantage worth ~3 pts ≈ ~7% win probability
+    const homeAdj = homeW + 0.07 * (1 - homeW * 2 + homeW);
+    const total   = awayW + homeAdj;
+    if (total === 0) return { away: 0.5, home: 0.5 };
+    const h = Math.max(0.05, Math.min(0.95, homeAdj / total));
+    return { away: +(1 - h).toFixed(3), home: +h.toFixed(3) };
+}
+
+function preGameWinProbBar(game) {
+    const away = game.awayTeam ?? "TBD";
+    const home = game.homeTeam ?? "TBD";
+    const prob = preGameWinProb(away, home);
+    if (!prob) return "";
+    const aC = TEAM_COLORS[away] || "#4080CC";
+    const hC = TEAM_COLORS[home] || "#CC4040";
+    const splitPct = (prob.away * 100).toFixed(1);
+    return `<div class="gc-winprob">
+  <span class="gc-wp-label">${Math.round(prob.away * 100)}%</span>
+  <div class="gc-wp-bar" style="background:linear-gradient(to right,${aC} calc(${splitPct}% - 4px),${hC} calc(${splitPct}% + 4px))"></div>
+  <span class="gc-wp-label">${Math.round(prob.home * 100)}%</span>
+</div>`;
+}
+
+function parseQtr(q) {
+    if (!q) return 1;
+    const n = String(q).replace(/^(\d+)(?:st|nd|rd|th)$/i, "$1");
+    const num = parseInt(n, 10);
+    return isNaN(num) ? (String(q).toUpperCase().startsWith("OT") ? 5 : 1) : num;
+}
+
+function winProbBar(game) {
+    const scoreAway = +(game.awayScore || 0);
+    const scoreHome = +(game.homeScore || 0);
+    const diff = scoreHome - scoreAway;
+    const qtr = parseQtr(game.quarter);
+    const clockStr = game.clock || "15:00";
+    const [mStr, sStr] = clockStr.split(":");
+    const secsLeft = (+(mStr||15)) * 60 + (+(sStr||0));
+    const totalGameSecs = 3600;
+    const secsElapsed = Math.min((qtr - 1) * 900 + (900 - secsLeft), totalGameSecs);
+    const timeWeight = Math.min(secsElapsed / totalGameSecs, 1);
+    const maxDiff = 28;
+    const rawProb = 0.5 + (diff / maxDiff) * 0.5 * timeWeight;
+    const homeProb = Math.max(0.03, Math.min(0.97, rawProb));
+    const awayProb = 1 - homeProb;
+    const away = game.awayTeam ?? "TBD";
+    const home = game.homeTeam ?? "TBD";
+    const aC = TEAM_COLORS[away] || "#4080CC";
+    const hC = TEAM_COLORS[home] || "#CC4040";
+    const splitPct = (awayProb * 100).toFixed(1);
+    return `<div class="gc-winprob">
+  <span class="gc-wp-label">${Math.round(awayProb * 100)}%</span>
+  <div class="gc-wp-bar" style="background:linear-gradient(to right,${aC} calc(${splitPct}% - 4px),${hC} calc(${splitPct}% + 4px))"></div>
+  <span class="gc-wp-label">${Math.round(homeProb * 100)}%</span>
+</div>`;
+}
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
 function buildCalendar() {
@@ -269,8 +304,7 @@ function buildCalendar() {
         else                          btn.classList.add("future");
 
         if (day.weekType === "Playoffs") {
-            const dateDisplay = day.weekLabel === "Super Bowl" ? day.label : "TBD";
-            btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${dateDisplay}</span>`;
+            btn.innerHTML = `<span class="cal-week-type post">${day.weekLabel}</span><span class="cal-day-label">${day.label}</span>`;
         } else if (day.holiday) {
             btn.innerHTML = `<span class="cal-week-type post">${day.holiday}</span><span class="cal-day-label">${day.label}</span>`;
         } else {
@@ -344,7 +378,10 @@ async function renderGamesForDate(dateStr, grid) {
         const data = await res.json();
 
         if (!res.ok || data.status === "no-key") {
-            grid.innerHTML = `<div class="no-games">Game data unavailable — API key not configured.</div>`;
+            const msg = data.status === "no-key"
+                ? "Game data unavailable — API key not configured."
+                : "Score updates temporarily paused (API limit reached). Scores will resume automatically.";
+            grid.innerHTML = `<div class="no-games">${msg}</div>`;
             return;
         }
 
@@ -354,19 +391,24 @@ async function renderGamesForDate(dateStr, grid) {
             return;
         }
 
-        // Chronological order by kickoff time
-        const sorted = [...games].sort((a, b) => kickoffToMinutes(a.kickoff) - kickoffToMinutes(b.kickoff));
+        // Live first, then upcoming, then final — within each group sorted by kickoff time
+        const STATUS_ORDER = { live: 0, upcoming: 1, final: 2 };
+        const sorted = [...games].sort((a, b) => {
+            const sd = (STATUS_ORDER[a.status] ?? 1) - (STATUS_ORDER[b.status] ?? 1);
+            return sd !== 0 ? sd : kickoffToMinutes(a.kickoff) - kickoffToMinutes(b.kickoff);
+        });
         grid.innerHTML = sorted.map(renderCard).join("");
 
-        // Restore expanded state that survived the re-render
+        // Restore expanded state that survived the re-render (move to top in order).
+        // Check both live and final cards — a live game can become final between refreshes.
         for (const gid of expandedGameIDs) {
-            const card = grid.querySelector(`.game-card--live[data-gameid="${gid}"]`);
-            if (card) card.classList.add("game-card--expanded");
-        }
-
-        // Load prediction bars async (one API call per game, disk-cached)
-        for (const g of sorted) {
-            if (g.gameID) loadOddsBar(g.gameID, g.homeTeam, g.awayTeam);
+            const card = grid.querySelector(`.game-card--live[data-gameid="${gid}"], .game-card--final[data-gameid="${gid}"]`);
+            if (card) {
+                card.classList.add("game-card--expanded");
+                const alreadyExpanded = [...grid.querySelectorAll(".game-card--expanded")].filter(c => c !== card);
+                if (alreadyExpanded.length === 0) grid.prepend(card);
+                else alreadyExpanded[alreadyExpanded.length - 1].after(card);
+            }
         }
     } catch (err) {
         grid.innerHTML = `<div class="no-games">Failed to load game data.</div>`;
@@ -394,6 +436,7 @@ function renderUpcoming(game) {
     const homeName = T[home]?.[0] ?? home;
     const stadium  = T[home]?.[1] ?? "";
     const channel  = game.channel ? ` · ${game.channel}` : "";
+    const wpBar    = preGameWinProbBar(game);
     return `
 <div class="game-card">
   <div class="gc-header">
@@ -418,8 +461,8 @@ function renderUpcoming(game) {
         <span class="gc-record">${game.homeRecord || ""}</span>
       </div>
     </div>
+    ${wpBar}
     ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span><span>${stadium}</span></div></div>` : ""}
-    <div id="odds-${game.gameID}" class="gc-pred-placeholder"></div>
   </div>
 </div>`;
 }
@@ -432,10 +475,14 @@ function ordinal(n) {
     return `${i}th`;
 }
 
-function buildFieldSvg(yardLine, possession, homeTeam, awayTeam) {
-    // Convert "KC 35" or "50" → SVG x (0–120 scale; away EZ = 0–10, home EZ = 110–120)
-    let ballX = 60;
+function buildFieldLine(yardLine, possession, homeTeam, awayTeam) {
+    const aC = TEAM_COLORS[awayTeam] || "#4080CC";
+    const hC = TEAM_COLORS[homeTeam] || "#CC4040";
+
+    // Parse ball position — only when we have actual yardLine data
+    let ballX = null;
     if (yardLine) {
+        ballX = 60; // fallback if parsing fails
         const m = String(yardLine).match(/([A-Za-z]+)\s*(\d+)/);
         if (m) {
             const team = m[1].toUpperCase(), yard = parseInt(m[2]);
@@ -445,22 +492,196 @@ function buildFieldSvg(yardLine, possession, homeTeam, awayTeam) {
             const n = parseInt(yardLine);
             if (!isNaN(n)) ballX = 10 + n;
         }
+        ballX = Math.max(10, Math.min(110, ballX));
     }
-    ballX = Math.max(11, Math.min(109, ballX));
 
-    const hashes = [0,10,20,30,40,50,60,70,80,90,100,110,120]
-        .map(x => `<line x1="${x}" y1="2" x2="${x}" y2="18" stroke="rgba(255,255,255,0.22)" stroke-width="0.7"/>`)
-        .join('');
+    // Color split: when we know where the ball is use it; otherwise 50/50
+    const splitX   = ballX ?? 60;
+    const splitPct = (splitX / 120) * 100;
 
-    const labels = [[20,"10"],[30,"20"],[40,"30"],[50,"40"],[60,"50"],[70,"40"],[80,"30"],[90,"20"],[100,"10"]]
-        .map(([x,n]) => `<text x="${x}" y="15" font-size="5" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="system-ui,sans-serif">${n}</text>`)
-        .join('');
+    // Hash marks at every 10 yards with yard-line labels
+    const yardLabels = [10,20,30,40,50,60,70,80,90,100,110];
+    const hashes = yardLabels.map(x => {
+        const pct = (x / 120 * 100).toFixed(2);
+        const col = x <= splitX ? aC : hC;
+        const dist = x <= 60 ? (x - 10) : (110 - x);
+        const label = dist === 0 ? "" : (dist === 50 ? "50" : String(dist));
+        return `<div class="gc-fl-hash" style="left:${pct}%;background:${col}"><span class="gc-fl-yard">${label}</span></div>`;
+    }).join("");
 
-    const ezAway = `<text x="5" y="13" font-size="3.6" fill="rgba(255,255,255,0.48)" text-anchor="middle" font-family="system-ui,sans-serif">${awayTeam}</text>`;
-    const ezHome = `<text x="115" y="13" font-size="3.6" fill="rgba(255,255,255,0.48)" text-anchor="middle" font-family="system-ui,sans-serif">${homeTeam}</text>`;
-    const ball   = `<ellipse cx="${ballX}" cy="10" rx="3.4" ry="2.1" fill="#f0a035" opacity="0.95"/>`;
+    // Only render ball SVG when we have real position data
+    const ballHtml = ballX !== null ? `<div class="gc-fl-ball" style="left:${splitPct.toFixed(2)}%">
+        <svg class="gc-fl-ball-svg" viewBox="0 0 20 12" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="10" cy="6" rx="9" ry="5" fill="#d07828" stroke="#1a0800" stroke-width="0.7"/>
+            <line x1="1.5" y1="6" x2="18.5" y2="6" stroke="#fff" stroke-width="1" opacity="0.8"/>
+            <line x1="8" y1="2.5" x2="8" y2="9.5" stroke="#fff" stroke-width="0.8" opacity="0.65"/>
+            <line x1="10" y1="1.4" x2="10" y2="10.6" stroke="#fff" stroke-width="0.8" opacity="0.65"/>
+            <line x1="12" y1="2.5" x2="12" y2="9.5" stroke="#fff" stroke-width="0.8" opacity="0.65"/>
+        </svg>
+    </div>` : "";
 
-    return `<svg class="gc-field-svg" viewBox="0 0 120 20" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="10" height="20" fill="rgba(12,50,18,0.95)"/><rect x="10" y="0" width="100" height="20" fill="rgba(18,78,28,0.85)"/><rect x="110" y="0" width="10" height="20" fill="rgba(12,50,18,0.95)"/>${hashes}${labels}${ezAway}${ezHome}${ball}</svg>`;
+    const awayLabel = `<span class="gc-fl-endzone gc-fl-endzone--away" style="color:${aC}">${awayTeam}</span>`;
+    const homeLabel = `<span class="gc-fl-endzone gc-fl-endzone--home" style="color:${hC}">${homeTeam}</span>`;
+
+    return `<div class="gc-field-line-wrap">
+        <div class="gc-fl-teams">${awayLabel}${homeLabel}</div>
+        <div class="gc-fl-bar" style="background:linear-gradient(to right,${aC} calc(${splitPct.toFixed(1)}% - 4px),${hC} calc(${splitPct.toFixed(1)}% + 4px))">
+            ${hashes}
+            ${ballHtml}
+        </div>
+    </div>`;
+}
+
+const ICON_CHART = `<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><rect x="2" y="11" width="3" height="7" rx="1"/><rect x="8.5" y="6" width="3" height="12" rx="1"/><rect x="15" y="8.5" width="3" height="9.5" rx="1"/></svg>`;
+const ICON_FOOTBALL = `<svg viewBox="0 0 20 14" width="18" height="13" fill="none"><ellipse cx="10" cy="7" rx="9" ry="5.5" fill="#c8742a" stroke="#1a0a00" stroke-width="0.8"/><line x1="2" y1="7" x2="18" y2="7" stroke="#fff" stroke-width="1" opacity="0.7"/><line x1="8.5" y1="3" x2="8.5" y2="11" stroke="#fff" stroke-width="0.8" opacity="0.55"/><line x1="10" y1="2" x2="10" y2="12" stroke="#fff" stroke-width="0.8" opacity="0.55"/><line x1="11.5" y1="3" x2="11.5" y2="11" stroke="#fff" stroke-width="0.8" opacity="0.55"/></svg>`;
+
+function buildStatGroup(label, rows) {
+    if (!rows.length) return "";
+    const hdrs = rows[0].cols.map(c => `<th>${c.l}</th>`).join("");
+    const trs  = rows.map(r => {
+        const cells = r.cols.map(c => `<td>${c.v}</td>`).join("");
+        return `<tr><td class="gc-st-name">${r.name}</td>${cells}</tr>`;
+    }).join("");
+    return `<div class="gc-stat-grp">
+  <div class="gc-stat-grp-lbl">${label}</div>
+  <table class="gc-stat-tbl"><thead><tr><th></th>${hdrs}</tr></thead><tbody>${trs}</tbody></table>
+</div>`;
+}
+
+function buildOffenseStats(players) {
+    const s = str => (str !== undefined && str !== null && str !== "") ? str : "—";
+    let html = "";
+
+    const passers = players.filter(p => p.Passing);
+    if (passers.length) {
+        html += buildStatGroup("Passing", passers.map(p => ({
+            name: p.name,
+            cols: [
+                { l:"C/A",  v:`${s(p.Passing.passCompletions)}/${s(p.Passing.passAttempts)}` },
+                { l:"YDS",  v: s(p.Passing.passYds) },
+                { l:"TD",   v: s(p.Passing.passTD) },
+                { l:"INT",  v: s(p.Passing.int) },
+                { l:"RTG",  v: s(p.Passing.rtg) },
+            ]
+        })));
+    }
+
+    const rushers = players.filter(p => p.Rushing);
+    if (rushers.length) {
+        html += buildStatGroup("Rushing", rushers.map(p => ({
+            name: p.name,
+            cols: [
+                { l:"CAR",  v: s(p.Rushing.carries) },
+                { l:"YDS",  v: s(p.Rushing.rushYds) },
+                { l:"AVG",  v: s(p.Rushing.rushAvg) },
+                { l:"TD",   v: s(p.Rushing.rushTD) },
+                { l:"LNG",  v: s(p.Rushing.longRush) },
+            ]
+        })));
+    }
+
+    const receivers = players.filter(p => p.Receiving);
+    if (receivers.length) {
+        html += buildStatGroup("Receiving", receivers.map(p => ({
+            name: p.name,
+            cols: [
+                { l:"REC",  v: s(p.Receiving.receptions) },
+                { l:"TGT",  v: s(p.Receiving.targets) },
+                { l:"YDS",  v: s(p.Receiving.recYds) },
+                { l:"TD",   v: s(p.Receiving.recTD) },
+                { l:"LNG",  v: s(p.Receiving.longRec) },
+            ]
+        })));
+    }
+
+    const kickers = players.filter(p => p.Kicking);
+    if (kickers.length) {
+        html += buildStatGroup("Kicking", kickers.map(p => ({
+            name: p.name,
+            cols: [
+                { l:"FG",  v: s(p.Kicking.fgMade) !== "—"
+                    ? `${s(p.Kicking.fgMade)}/${s(p.Kicking.fgAttempts)}`
+                    : s(p.Kicking.fgMade) },
+                { l:"XP",  v: s(p.Kicking.xpMade) },
+                { l:"PTS", v: s(p.Kicking.kickPts ?? p.Kicking.totalPts) },
+            ]
+        })));
+    }
+
+    return html || `<div class="gc-stats-empty">No offensive stats yet</div>`;
+}
+
+function buildDefenseStats(players) {
+    const s = str => (str !== undefined && str !== null && str !== "") ? str : "—";
+    const defenders = players.filter(p => p.Defense);
+    if (!defenders.length) return `<div class="gc-stats-empty">No defensive stats yet</div>`;
+    return buildStatGroup("Defense", defenders.map(p => ({
+        name: p.name,
+        cols: [
+            { l:"TCKL", v: s(p.Defense.totalTackles) },
+            { l:"SACK", v: s(p.Defense.sacks) },
+            { l:"TFL",  v: s(p.Defense.tfl) },
+            { l:"INT",  v: s(p.Defense.int) },
+            { l:"PD",   v: s(p.Defense.passDeflections) },
+        ]
+    })));
+}
+
+function buildStatsPanel(game, awayAbbr, homeAbbr, hidden = true) {
+    const players = Array.isArray(game.playerStats) ? game.playerStats : [];
+    const awayP = players.filter(p => p.team === awayAbbr);
+    const homeP = players.filter(p => p.team === homeAbbr);
+
+    const aC = TEAM_COLORS[awayAbbr] || "#4080CC";
+    const hC = TEAM_COLORS[homeAbbr] || "#CC4040";
+
+    const col = (teamPlayers, abbr, color) => `
+      <div class="gc-stats-col">
+        <div class="gc-stats-col-hdr" style="color:${color}">${abbr}</div>
+        <div class="gc-stats-col-scroll">
+          <div data-sp-content="off">${buildOffenseStats(teamPlayers)}</div>
+          <div data-sp-content="def" style="display:none">${buildDefenseStats(teamPlayers)}</div>
+        </div>
+      </div>`;
+
+    return `<div class="gc-stats-panel" data-panel="stats"${hidden ? ' style="display:none"' : ''}>
+  <div class="gc-stats-bar">
+    <button class="gc-sp-tab active" data-sp-side="off">Offense</button>
+    <button class="gc-sp-tab" data-sp-side="def">Defense</button>
+  </div>
+  <div class="gc-stats-cols">
+    ${col(awayP, awayAbbr, aC)}
+    <div class="gc-stats-sep"></div>
+    ${col(homeP, homeAbbr, hC)}
+  </div>
+</div>`;
+}
+
+// Parse yard line + possession from a lastPlay text string when direct fields are missing.
+// Returns { yardLine, possession } — both may be null if parsing fails.
+function parseLastPlay(text, away, home) {
+    if (!text) return { yardLine: null, possession: null };
+    const teams = [away, home].filter(Boolean).map(t => t.toUpperCase());
+
+    // Look for "to the TEAM YD" patterns, e.g. "to the KC 25" or "at the SF 40"
+    const m = text.match(/\bat\s+the\s+([A-Z]{2,3})\s+(\d+)\b/i)
+           || text.match(/\bto\s+the\s+([A-Z]{2,3})\s+(\d+)\b/i)
+           || text.match(/\bon\s+the\s+([A-Z]{2,3})\s+(\d+)\b/i);
+    const yardLine = m ? `${m[1].toUpperCase()} ${m[2]}` : null;
+
+    // Possession: first team abbreviation in parenthetical clock "(2:15) TEAM" or "<TEAM> rush/pass/sacked"
+    let possession = null;
+    const pMatch = text.match(/^\([^)]*\)\s+([A-Z]{2,3})[-\s]/);
+    if (pMatch && teams.includes(pMatch[1].toUpperCase())) {
+        possession = pMatch[1].toUpperCase();
+    } else {
+        // Try to find which team is mentioned first as a possessing actor
+        for (const t of teams) {
+            const re = new RegExp(`\\b${t}\\b`, "i");
+            if (re.test(text)) { possession = t; break; }
+        }
+    }
+    return { yardLine, possession };
 }
 
 function renderLive(game) {
@@ -471,57 +692,53 @@ function renderLive(game) {
     const stadium  = T[home]?.[1] ?? "";
     const scoreAway = game.awayScore ?? "-";
     const scoreHome = game.homeScore ?? "-";
-    const qtr      = quarterLabel(game.quarter);
-    const clock     = game.clock ?? "";
-    const qtrClock  = qtr && clock ? `${qtr} · ${clock}` : (qtr || clock || "Live");
-    const poss      = game.possession && game.possession !== "TBD" ? game.possession.toUpperCase() : null;
-    const awayHasBall = poss && poss === away.toUpperCase();
-    const homeHasBall = poss && poss === home.toUpperCase();
+    const qtrNum = parseQtr(game.quarter);
+    const qtr    = game.quarter ? (qtrNum >= 5 ? "OT" : `Q${qtrNum}`) : "";
+    const clock  = game.clock  ? game.clock : "";
+    const qtrClock = qtr && clock ? `${qtr} · ${clock}` : (qtr || clock || "Live");
 
-    const fieldSvg = buildFieldSvg(game.yardLine, game.possession, home, away);
+    // Use direct fields first; fall back to parsing lastPlay
+    let yardLine  = game.yardLine  || null;
+    let rawPoss   = game.possession && game.possession !== "TBD" ? game.possession.toUpperCase() : null;
+    if ((!yardLine || !rawPoss) && game.lastPlay) {
+        const parsed = parseLastPlay(game.lastPlay, away, home);
+        if (!yardLine  && parsed.yardLine)  yardLine = parsed.yardLine;
+        if (!rawPoss   && parsed.possession) rawPoss  = parsed.possession;
+    }
+
+    const poss        = rawPoss;
+    const awayHasBall = poss && (poss === away.toUpperCase() || poss === awayName.toUpperCase());
+    const homeHasBall = poss && (poss === home.toUpperCase() || poss === homeName.toUpperCase());
+
+    const fieldLine = buildFieldLine(yardLine, poss, home, away);
     const downDist = (game.down && game.yardsToGo)
         ? `${ordinal(game.down)} &amp; ${game.yardsToGo}${game.yardLine ? ` · ${game.yardLine}` : ""}`
         : (game.yardLine ? `At ${game.yardLine}` : "");
-
-    // Last play: formatted summary + raw API data
-    const formattedPlay = formatLastPlay(game);
-    const playDataFields = [
-        game.quarter   ? ["Quarter", qtr]               : null,
-        game.clock     ? ["Clock",   game.clock]         : null,
-        game.down && game.yardsToGo ? ["Down", `${ordinal(game.down)} & ${game.yardsToGo}`] : null,
-        game.yardLine  ? ["Yard Line", game.yardLine]    : null,
-        game.possession ? ["Possession", game.possession] : null,
-        game.lastPlay  ? ["Raw",     game.lastPlay]      : null,
-    ].filter(Boolean);
-    const playDataHtml = playDataFields.length
-        ? `<div class="gc-play-data">${playDataFields.map(([k,v]) =>
-            `<div class="gc-play-row"><span class="gc-play-key">${k}</span><span class="gc-play-val">${v}</span></div>`).join("")}</div>`
+    const lastPlayHtml = buildPlayLog(game, away, home);
+    const stadiumFooter = stadium
+        ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span><span>${stadium}</span></div></div>`
         : "";
-
-    const lastPlaySection = formattedPlay
-        ? `<div class="gc-lastplay">
-             <span class="gc-lastplay-label">Last Play</span>
-             <span class="gc-lastplay-desc">${formattedPlay}</span>
-             ${playDataHtml}
-           </div>`
-        : `<div class="gc-lastplay gc-lastplay--empty">Play data updates every ~2 min${playDataHtml}</div>`;
+    const stadiumHeader = stadium
+        ? `<span class="gc-header-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</span>`
+        : "";
 
     return `
 <div class="game-card game-card--live" data-gameid="${game.gameID}">
+  <div class="gc-header">
+    <span class="gc-live-info">● LIVE${qtr ? ` · ${qtr}` : ""}</span>
+    ${stadiumHeader}
+    <span class="gc-status-badge live">Live</span>
+  </div>
   <div class="gc-live-summary">
-    <div class="gc-header">
-      <span class="gc-live-info">● LIVE${qtr ? ` · ${qtr}` : ""}</span>
-      <span class="gc-status-badge live">Live</span>
-    </div>
     <div class="gc-body">
       <div class="gc-teams">
-        <div class="gc-team">
+        <div class="gc-team ${awayHasBall ? "gc-team--has-ball" : ""}">
           <div class="gc-logo-wrap">
             ${logoImg(away)}
-            ${awayHasBall ? '<span class="gc-poss-ball">🏈</span>' : ""}
           </div>
           <span class="gc-abbr">${away}</span>
           <span class="gc-name">${awayName}</span>
+          ${game.awayRecord ? `<span class="gc-record">${game.awayRecord}</span>` : ""}
         </div>
         <div class="gc-center">
           <div class="gc-scores">
@@ -531,24 +748,119 @@ function renderLive(game) {
           </div>
           <span class="gc-live-info">${qtrClock}</span>
         </div>
-        <div class="gc-team">
+        <div class="gc-team ${homeHasBall ? "gc-team--has-ball" : ""}">
           <div class="gc-logo-wrap">
             ${logoImg(home)}
-            ${homeHasBall ? '<span class="gc-poss-ball">🏈</span>' : ""}
           </div>
           <span class="gc-abbr">${home}</span>
           <span class="gc-name">${homeName}</span>
+          ${game.homeRecord ? `<span class="gc-record">${game.homeRecord}</span>` : ""}
         </div>
       </div>
-      ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
+      ${stadiumFooter}
     </div>
-    <div id="odds-${game.gameID}" class="gc-pred-placeholder"></div>
+    ${winProbBar(game)}
   </div>
   <div class="gc-live-detail">
-    <div class="gc-field">${fieldSvg}</div>
-    ${downDist ? `<div class="gc-down-dist">${downDist}</div>` : ""}
-    ${lastPlaySection}
+    <div class="gc-score-bar">
+      <div class="gc-sb-team ${awayHasBall ? "gc-sb-team--has-ball" : ""}">
+        <div class="gc-logo-wrap">${logoImg(away)}</div>
+        <span class="gc-sb-abbr">${away}</span>
+      </div>
+      <span class="gc-sb-score">${scoreAway}</span>
+      <div class="gc-sb-clock">
+        <span class="gc-sb-qtr">${qtrClock}</span>
+        ${downDist ? `<span class="gc-sb-down">${downDist}</span>` : ""}
+      </div>
+      <span class="gc-sb-score">${scoreHome}</span>
+      <div class="gc-sb-team ${homeHasBall ? "gc-sb-team--has-ball" : ""}">
+        <div class="gc-logo-wrap">${logoImg(home)}</div>
+        <span class="gc-sb-abbr">${home}</span>
+      </div>
+      <button class="gc-view-toggle" data-active="plays" title="View Stats" aria-label="View Stats">${ICON_CHART}</button>
+    </div>
+    ${fieldLine}
+    <div data-panel="plays">${lastPlayHtml}</div>
+    ${buildStatsPanel(game, away, home)}
+    ${buildLineScoreTable(game)}
   </div>
+</div>`;
+}
+
+function buildPlayLog(game, awayAbbr, homeAbbr) {
+    const scoreTypeIcon = { TD: "⬡", FG: "◆", SF: "▲", PAT: "○" };
+    const teamColor = t => TEAM_COLORS[t] || "#888";
+
+    // Scoring plays section
+    let scoringHtml = "";
+    if (Array.isArray(game.scoringPlays) && game.scoringPlays.length > 0) {
+        const rows = game.scoringPlays.map((s, i) => {
+            const isAway  = s.team === awayAbbr;
+            const icon    = scoreTypeIcon[s.scoreType] || "⬡";
+            const color   = teamColor(s.team);
+            const period  = s.period ? s.period.replace(/^Q/, "") : "";
+            const clock   = s.time || "";
+            const label   = period && clock ? `Q${period} ${clock}` : (period ? `Q${period}` : "");
+            const scoreStr= s.awayScore !== "" && s.homeScore !== ""
+                ? `${s.awayScore}–${s.homeScore}`
+                : "";
+            return `<div class="gc-sp-row ${isAway ? "gc-sp-row--away" : "gc-sp-row--home"}">
+  <div class="gc-sp-dot" style="background:${color};box-shadow:0 0 6px ${color}55"></div>
+  <div class="gc-sp-body">
+    <span class="gc-sp-type" style="color:${color}">${s.scoreType}</span>
+    <span class="gc-sp-desc">${s.desc}</span>
+    <span class="gc-sp-meta">${label}${scoreStr ? ` · <b>${scoreStr}</b>` : ""}</span>
+  </div>
+</div>`;
+        }).join("");
+        scoringHtml = `<div class="gc-play-section">
+  <div class="gc-play-section-label">Scoring</div>
+  <div class="gc-scoring-plays">${rows}</div>
+</div>`;
+    }
+
+    // Recent plays section
+    let recentHtml = "";
+    const recent = game.recentPlays;
+    if (Array.isArray(recent) && recent.length > 0) {
+        const rows = recent.map(p => {
+            const meta = [p.down, p.period && p.clock ? `Q${p.period.replace(/^Q/,"")} ${p.clock}` : ""].filter(Boolean).join(" · ");
+            return `<div class="gc-rp-row">
+  <span class="gc-rp-meta">${meta}</span>
+  <span class="gc-rp-play">${p.play}</span>
+</div>`;
+        }).join("");
+        recentHtml = `<div class="gc-play-section">
+  <div class="gc-play-section-label">Recent Plays</div>
+  <div class="gc-recent-plays">${rows}</div>
+</div>`;
+    } else if (!scoringHtml) {
+        recentHtml = `<div class="gc-play-empty">Play data updates every ~2 min</div>`;
+    }
+
+    return `<div class="gc-play-log">${scoringHtml}${recentHtml}</div>`;
+}
+
+function buildLineScoreTable(game) {
+    const ls = game.lineScore;
+    if (!ls) return "";
+    const qtrNum = parseQtr(game.quarter);
+    const quarters = qtrNum >= 5
+        ? ["Q1","Q2","Q3","Q4","OT"]
+        : ["Q1","Q2","Q3","Q4"].slice(0, Math.max(qtrNum, 1));
+    const cols = quarters.map(q => `<th class="gc-ls-q">${q}</th>`).join("") + "<th class='gc-ls-t'>T</th>";
+    const awayRow = quarters.map(q => `<td>${ls.away?.[q] ?? ""}</td>`).join("") + `<td class="gc-ls-total">${game.awayScore ?? ""}</td>`;
+    const homeRow = quarters.map(q => `<td>${ls.home?.[q] ?? ""}</td>`).join("") + `<td class="gc-ls-total">${game.homeScore ?? ""}</td>`;
+    const away = game.awayTeam ?? "TBD";
+    const home = game.homeTeam ?? "TBD";
+    return `<div class="gc-linescore">
+  <table class="gc-ls-table">
+    <thead><tr><th class="gc-ls-team"></th>${cols}</tr></thead>
+    <tbody>
+      <tr><td class="gc-ls-team">${away}</td>${awayRow}</tr>
+      <tr><td class="gc-ls-team">${home}</td>${homeRow}</tr>
+    </tbody>
+  </table>
 </div>`;
 }
 
@@ -565,88 +877,184 @@ function renderFinal(game) {
     const awayWon   = scoreAway > scoreHome;
 
     return `
-<div class="game-card game-card--final">
+<div class="game-card game-card--final" data-gameid="${game.gameID ?? ""}" data-away="${away}" data-home="${home}">
   <div class="gc-header">
     <span>${channel}</span>
     <span class="gc-status-badge final">Final</span>
   </div>
-  <div class="gc-body">
-    <div class="gc-teams">
-      <div class="gc-team ${awayWon ? "win-side" : homeWon ? "loss-side" : ""}">
-        ${logoImg(away)}
-        <span class="gc-abbr">${away}</span>
-        <span class="gc-name">${awayName}</span>
-        <span class="gc-record ${awayWon ? "winner" : ""}">${game.awayRecord || ""}</span>
-      </div>
-      <div class="gc-center">
-        <div class="gc-scores">
-          <span class="gc-score ${awayWon ? "winner" : homeWon ? "loser" : ""}">${scoreAway}</span>
-          <span class="gc-dash">–</span>
-          <span class="gc-score ${homeWon ? "winner" : awayWon ? "loser" : ""}">${scoreHome}</span>
+  <div class="gc-final-summary">
+    <div class="gc-body">
+      <div class="gc-teams">
+        <div class="gc-team ${awayWon ? "win-side" : homeWon ? "loss-side" : ""}">
+          ${logoImg(away)}
+          <span class="gc-abbr">${away}</span>
+          <span class="gc-name">${awayName}</span>
+          <span class="gc-record ${awayWon ? "winner" : ""}">${game.awayRecord || ""}</span>
+        </div>
+        <div class="gc-center">
+          <div class="gc-scores">
+            <span class="gc-score ${awayWon ? "winner" : homeWon ? "loser" : ""}">${scoreAway}</span>
+            <span class="gc-dash">–</span>
+            <span class="gc-score ${homeWon ? "winner" : awayWon ? "loser" : ""}">${scoreHome}</span>
+          </div>
+        </div>
+        <div class="gc-team ${homeWon ? "win-side" : awayWon ? "loss-side" : ""}">
+          ${logoImg(home)}
+          <span class="gc-abbr">${home}</span>
+          <span class="gc-name">${homeName}</span>
+          <span class="gc-record ${homeWon ? "winner" : ""}">${game.homeRecord || ""}</span>
         </div>
       </div>
-      <div class="gc-team ${homeWon ? "win-side" : awayWon ? "loss-side" : ""}">
-        ${logoImg(home)}
-        <span class="gc-abbr">${home}</span>
-        <span class="gc-name">${homeName}</span>
-        <span class="gc-record ${homeWon ? "winner" : ""}">${game.homeRecord || ""}</span>
-      </div>
-    </div>
-    ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
-    <div id="odds-${game.gameID}" class="gc-pred-placeholder"></div>
-  </div>
-</div>`;
-}
-
-// ── Odds bar rendering ────────────────────────────────────────────────────────
-async function loadOddsBar(gameID, homeTeam, awayTeam) {
-    const el = document.getElementById(`odds-${gameID}`);
-    if (!el) return;
-    try {
-        const res = await fetch(`/api/odds?gameID=${gameID}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.homeML && !data.awayML) return;
-
-        const pct = oddsToWinPct(data.homeML, data.awayML);
-        if (!pct) return;
-
-        const hClr = TEAM_COLORS[homeTeam] || "#4488ff";
-        const aClr = TEAM_COLORS[awayTeam] || "#ff8844";
-
-        el.innerHTML = `
-<div class="gc-pred-bar-wrap">
-  <div class="gc-pred-bar">
-    <div class="gc-pred-seg" style="width:${pct.away}%;background:${aClr}cc">
-      <span class="gc-pred-pct">${pct.away}%</span>
-    </div>
-    <div class="gc-pred-seg gc-pred-seg--right" style="width:${pct.home}%;background:${hClr}cc">
-      <span class="gc-pred-pct">${pct.home}%</span>
+      ${stadium ? `<div class="gc-footer"><div class="gc-stadium"><span class="gc-stadium-icon">🏟</span>${stadium}</div></div>` : ""}
     </div>
   </div>
+  <div class="gc-final-detail">
+    <div class="gc-score-bar">
+      <div class="gc-sb-team">${logoImg(away)}</div>
+      <span class="gc-sb-score ${awayWon ? "winner" : homeWon ? "loser" : ""}">${scoreAway}</span>
+      <div class="gc-sb-clock"><span class="gc-sb-final-label">Final</span></div>
+      <span class="gc-sb-score ${homeWon ? "winner" : awayWon ? "loser" : ""}">${scoreHome}</span>
+      <div class="gc-sb-team">${logoImg(home)}</div>
+    </div>
+    <div class="gc-bs-loading">Loading stats…</div>
+  </div>
 </div>`;
-    } catch { /* odds unavailable — bar stays hidden */ }
 }
 
 // ── Expandable live cards ─────────────────────────────────────────────────────
 function setupLiveCardToggle() {
     document.getElementById("games-grid").addEventListener("click", e => {
+        // Final card click — delegate to async handler, skip tab buttons (handled inline)
+        const finalCard = e.target.closest(".game-card--final");
+        if (finalCard) {
+            if (e.target.closest(".gc-sp-tab")) return; // stats sub-tab clicks handled by injectFinalStats
+            expandFinalCard(finalCard);
+            return;
+        }
+
+        // Stats/Plays view toggle button (chart ↔ football)
+        const toggleBtn = e.target.closest(".gc-view-toggle");
+        if (toggleBtn) {
+            e.stopPropagation();
+            const card = toggleBtn.closest(".game-card--live");
+            if (!card) return;
+            const nowActive = toggleBtn.dataset.active === "plays" ? "stats" : "plays";
+            toggleBtn.dataset.active = nowActive;
+            toggleBtn.innerHTML = nowActive === "stats" ? ICON_FOOTBALL : ICON_CHART;
+            toggleBtn.title = nowActive === "stats" ? "Back to Plays" : "View Stats";
+            card.querySelectorAll("[data-panel]").forEach(panel => {
+                panel.style.display = panel.dataset.panel === nowActive ? "" : "none";
+            });
+            return;
+        }
+
+        // Stats offense/defense sub-tabs
+        const spTab = e.target.closest(".gc-sp-tab");
+        if (spTab) {
+            e.stopPropagation();
+            const panel = spTab.closest(".gc-stats-panel");
+            if (!panel) return;
+            const side = spTab.dataset.spSide;
+            panel.querySelectorAll(".gc-sp-tab").forEach(t => t.classList.toggle("active", t.dataset.spSide === side));
+            panel.querySelectorAll("[data-sp-content]").forEach(c => {
+                c.style.display = c.dataset.spContent === side ? "" : "none";
+            });
+            return;
+        }
+
+        // Live card click
         const card = e.target.closest(".game-card--live");
         if (!card) return;
         const gameId = card.dataset.gameid;
         if (!gameId) return;
+        const grid = document.getElementById("games-grid");
         const isNowExpanded = card.classList.toggle("game-card--expanded");
-        if (isNowExpanded) expandedGameIDs.add(gameId);
-        else expandedGameIDs.delete(gameId);
+        if (isNowExpanded) {
+            expandedGameIDs.add(gameId);
+            const alreadyExpanded = [...grid.querySelectorAll(".game-card--expanded")].filter(c => c !== card);
+            if (alreadyExpanded.length === 0) grid.prepend(card);
+            else alreadyExpanded[alreadyExpanded.length - 1].after(card);
+        } else {
+            expandedGameIDs.delete(gameId);
+        }
     });
 }
 
+// ── Expandable final cards ────────────────────────────────────────────────────
+async function expandFinalCard(card) {
+    const gameId = card.dataset.gameid;
+    if (!gameId) return;
+
+    const grid = document.getElementById("games-grid");
+    const isNowExpanded = card.classList.toggle("game-card--expanded");
+
+    if (!isNowExpanded) return;
+
+    const alreadyExpanded = [...grid.querySelectorAll(".game-card--expanded")].filter(c => c !== card);
+    if (alreadyExpanded.length === 0) grid.prepend(card);
+    else alreadyExpanded[alreadyExpanded.length - 1].after(card);
+
+    // Already rendered stats panel — don't re-fetch
+    if (card.querySelector(".gc-stats-panel")) return;
+
+    const loadingEl = card.querySelector(".gc-bs-loading");
+
+    // Use cache if available
+    if (boxscoreCache.has(gameId)) {
+        injectFinalStats(card, boxscoreCache.get(gameId));
+        return;
+    }
+
+    try {
+        const res  = await fetch(`/api/game-boxscore?gameID=${gameId}`);
+        const data = await res.json();
+        boxscoreCache.set(gameId, data);
+        if (card.classList.contains("game-card--expanded")) {
+            injectFinalStats(card, data);
+        }
+    } catch (err) {
+        if (loadingEl) loadingEl.textContent = "Stats unavailable.";
+        console.error("Boxscore fetch error:", err);
+    }
+}
+
+function injectFinalStats(card, data) {
+    const loadingEl = card.querySelector(".gc-bs-loading");
+    const detail    = card.querySelector(".gc-final-detail");
+    if (!detail) return;
+
+    const away = data.away || card.dataset.away || "";
+    const home = data.home || card.dataset.home || "";
+
+    const statsHtml = buildStatsPanel(data, away, home, false);
+    if (loadingEl) {
+        loadingEl.outerHTML = statsHtml;
+    } else {
+        detail.insertAdjacentHTML("beforeend", statsHtml);
+    }
+
+    // Wire up the freshly-injected offense/defense tab clicks
+    const panel = detail.querySelector(".gc-stats-panel");
+    if (panel) {
+        panel.querySelectorAll(".gc-sp-tab").forEach(tab => {
+            tab.addEventListener("click", e => {
+                e.stopPropagation();
+                const side = tab.dataset.spSide;
+                panel.querySelectorAll(".gc-sp-tab").forEach(t => t.classList.toggle("active", t.dataset.spSide === side));
+                panel.querySelectorAll("[data-sp-content]").forEach(c => {
+                    c.style.display = c.dataset.spContent === side ? "" : "none";
+                });
+            });
+        });
+    }
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+    loadGameTeamStats();
     buildCalendar();
     setupLiveCardToggle();
 
-    // Find today or the next upcoming date
     let defaultIdx = SCHEDULE_DATES.findIndex(d => d.date >= TODAY);
     if (defaultIdx === -1) defaultIdx = SCHEDULE_DATES.length - 1;
 
@@ -659,4 +1067,8 @@ function init() {
     }, 100);
 }
 
-document.addEventListener("DOMContentLoaded", init);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+} else {
+    init();
+}

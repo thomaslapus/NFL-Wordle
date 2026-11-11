@@ -1,5 +1,5 @@
 /* ============================================================
-   MidStats — Shared styles  (metallic blue theme, left nav)
+   MidStats — Shared styles  (metallic blue theme, left nav) v4
    ============================================================ */
 
 :root {
@@ -164,6 +164,168 @@ body {
 }
 
 .nav-btn:hover { background: var(--surface-3); }
+
+/* Nav icon buttons (search + theme toggle) */
+.nav-icon-btn {
+    background: none;
+    border: none;
+    color: rgba(145, 190, 255, 0.5);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s ease, color 0.18s ease;
+    flex-shrink: 0;
+    padding: 0;
+}
+.nav-icon-btn:hover {
+    background: rgba(70, 145, 255, 0.12);
+    color: rgba(175, 215, 255, 0.92);
+}
+
+/* Nav separator before utility buttons */
+.nav-sep {
+    width: 60%;
+    height: 1px;
+    background: rgba(80, 150, 255, 0.15);
+    margin: 4px 0;
+    align-self: center;
+}
+
+/* ============================================================
+   Light mode overrides
+   ============================================================ */
+:root[data-theme="light"] {
+    --bg:        #f0f4f8;
+    --surface:   #ffffff;
+    --surface-2: #e8eff7;
+    --surface-3: #dce7f2;
+    --accent:    #2d6fb5;
+    --accent-2:  #1a5ea0;
+    --gold:      #c49a10;
+    --text:      #1a2a3c;
+    --text-dim:  #5a7898;
+    --border:    rgba(50, 100, 160, 0.18);
+    --danger:    #cc2222;
+    --success:   #2e8b50;
+    --metal-bg:  linear-gradient(160deg, #eef3fa 0%, #f5f8fc 55%, #ffffff 100%);
+    --card-bg:   linear-gradient(155deg, #eef3fa 0%, #f5f8fc 80%, #ffffff 100%);
+    --shadow:    0 4px 24px rgba(50, 100, 160, 0.12);
+}
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+        --bg:        #f0f4f8;
+        --surface:   #ffffff;
+        --surface-2: #e8eff7;
+        --surface-3: #dce7f2;
+        --accent:    #2d6fb5;
+        --accent-2:  #1a5ea0;
+        --gold:      #c49a10;
+        --text:      #1a2a3c;
+        --text-dim:  #5a7898;
+        --border:    rgba(50, 100, 160, 0.18);
+        --danger:    #cc2222;
+        --success:   #2e8b50;
+        --metal-bg:  linear-gradient(160deg, #eef3fa 0%, #f5f8fc 55%, #ffffff 100%);
+        --card-bg:   linear-gradient(155deg, #eef3fa 0%, #f5f8fc 80%, #ffffff 100%);
+        --shadow:    0 4px 24px rgba(50, 100, 160, 0.12);
+    }
+}
+:root[data-theme="light"] body {
+    background-image: radial-gradient(ellipse at 15% 50%, rgba(100, 160, 220, 0.07) 0%, transparent 60%);
+}
+:root[data-theme="light"] #navbar {
+    background: linear-gradient(175deg, #d8e8f8 0%, #e8f0f9 45%, #f0f5fc 100%);
+    border-color: rgba(100, 160, 220, 0.3);
+}
+
+/* ============================================================
+   Global search overlay
+   ============================================================ */
+#gsearch-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 9000;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+}
+#gsearch-overlay.gs-open { display: flex; }
+
+#gsearch-box {
+    width: min(560px, calc(100vw - 32px));
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+#gsearch-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+#gsearch-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: var(--text);
+    font-family: inherit;
+}
+#gsearch-input::placeholder { color: var(--text-dim); }
+#gsearch-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+#gsearch-close:hover { background: var(--surface-2); color: var(--text); }
+#gsearch-results { max-height: 380px; overflow-y: auto; }
+
+.gs-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+}
+.gs-result:last-child { border-bottom: none; }
+.gs-result:hover { background: var(--surface-2); }
+.gs-headshot {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-2);
+    flex-shrink: 0;
+}
+.gs-headshot-blank {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    flex-shrink: 0;
+}
+.gs-logo { width: 28px; height: 28px; object-fit: contain; margin-left: auto; }
+.gs-logo-lg { width: 36px; height: 36px; }
+.gs-info { display: flex; flex-direction: column; gap: 2px; }
+.gs-name { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+.gs-meta { font-size: 0.75rem; color: var(--text-dim); }
+.gs-loading, .gs-empty { padding: 20px 16px; color: var(--text-dim); font-size: 0.85rem; }
 
 /* ============================================================
    Utility

@@ -17,16 +17,16 @@ const COLOR_GOLD  = "#e6b821"; // close match  (mirrors CSS --gold)
 
 let guessCount = 0;
 
-// Stores each guess as [name, team, position, age, number]
+// Stores each guess as [name, team, position, age, number, college, statValue]
 // Index 0 = guess 1, index 7 = guess 8
 let guessesArray = [
-    ["","","","",""], ["","","","",""], ["","","","",""], ["","","","",""],
-    ["","","","",""], ["","","","",""], ["","","","",""], ["","","","",""]
+    ["","","","","","",null], ["","","","","","",null], ["","","","","","",null], ["","","","","","",null],
+    ["","","","","","",null], ["","","","","","",null], ["","","","","","",null], ["","","","","","",null]
 ];
 
 // Was: answer mixed into guessesArray[0] alongside real guesses — confusing and caused index bugs
 // Now: stored in its own dedicated object, never in guessesArray
-let answer = { name: "", team: "", position: "", age: 0, number: 0 };
+let answer = { name: "", team: "", position: "", age: 0, number: 0, college: "", statLabel: "Stat", statValue: null };
 
 // Position groups used for yellow "same group" comparisons
 const positions = [
@@ -35,17 +35,30 @@ const positions = [
     ["K","P"]                    // Special Teams
 ];
 
-// Divisions used for yellow "same division" comparisons
-const divisions = [
-    ["CHI","GB","DET","MIN"],  // NFC North
-    ["ATL","CAR","NO","TB"],   // NFC South
-    ["DAL","PHI","NYG","WAS"], // NFC East
-    ["SF","LAR","ARI","SEA"],  // NFC West
-    ["CLE","BAL","PIT","CIN"], // AFC North
-    ["IND","JAX","HOU","TEN"], // AFC South
-    ["BUF","MIA","NE","NYJ"],  // AFC East
-    ["DEN","KC","LV","LAC"]    // AFC West
+// Conferences used for yellow "same conference" comparisons
+const conferences = [
+    ["CHI","GB","DET","MIN","ATL","CAR","NO","TB","DAL","PHI","NYG","WAS","SF","LAR","ARI","SEA"], // NFC
+    ["CLE","BAL","PIT","CIN","IND","JAX","HOU","TEN","BUF","MIA","NE","NYJ","DEN","KC","LV","LAC"] // AFC
 ];
+
+// Daily rotating stat category (rotates by day-of-year)
+const STAT_CATEGORIES = [
+    { key: "recYds",   label: "2025 Rec Yds",    smallRange: 150, medRange: 450 },
+    { key: "rushYds",  label: "2025 Rush Yds",   smallRange: 150, medRange: 450 },
+    { key: "passYds",  label: "2025 Pass Yds",   smallRange: 300, medRange: 900 },
+    { key: "recRec",   label: "2025 Receptions", smallRange: 15,  medRange: 40  },
+    { key: "totalTDs", label: "2025 TDs",        smallRange: 3,   medRange: 8   },
+    { key: "games",    label: "2025 Games",      smallRange: 2,   medRange: 5   },
+];
+
+const _today = new Date();
+const _dayOfYear = Math.floor((_today - new Date(_today.getFullYear(), 0, 0)) / 86_400_000);
+const dailyStatCategory = STAT_CATEGORIES[_dayOfYear % STAT_CATEGORIES.length];
+
+const _normName = name => (name || "").toLowerCase().replace(/[^a-z]/g, "");
+
+// Maps normalized player name → { recYds, rushYds, passYds, recRec, totalTDs, games }
+const statLookup = {};
 
 // ============================================================
 // Data loading
@@ -53,15 +66,13 @@ const divisions = [
 
 getPlayerData();
 
-// Was: XMLHttpRequest with a separate responseRecieveHandler callback, calling Sleeper API directly
-// Now: async/await fetch from our own server; two requests run in parallel via Promise.all
-//      /api/players  → cached player list for autocomplete
-//      /api/daily-player → today's answer, picked server-side so everyone gets the same player
+// Uses the 2025-stat-enriched player pool (Tank01+Sleeper merge) when available,
+// falling back to the Sleeper active roster if 2025 stats are still loading.
 async function getPlayerData() {
     try {
         const [playersRes, dailyRes] = await Promise.all([
-            fetch("/api/players"),
-            fetch("/api/daily-player")
+            fetch("/api/wordle-players"),
+            fetch("/api/daily-wordle-player")
         ]);
 
         // fetch() does NOT throw on 4xx/5xx — we must check .ok manually
@@ -71,19 +82,56 @@ async function getPlayerData() {
         const daily = await dailyRes.json();
 
         // Populate the answer object from the server's daily player
-        answer.name     = daily.full_name;
-        answer.team     = daily.team;
-        answer.position = simplifyPosition(daily.position);
-        answer.age      = daily.age;
-        answer.number   = daily.number;
+        answer.name      = daily.full_name;
+        answer.team      = daily.team;
+        answer.position  = simplifyPosition(daily.position);
+        answer.age       = daily.age;
+        answer.number    = daily.number;
+        answer.college   = daily.college || "";
+        answer.statLabel = dailyStatCategory.label;
+        // Read stat directly from merged player object; falls back to null if Sleeper-only data
+        answer.statValue = daily[dailyStatCategory.key] ?? null;
 
         loadingMessage.classList.add("hidden-loading");
+
+        // Update stat column header
+        const statHeader = document.getElementById("stat-col-header");
+        if (statHeader) statHeader.textContent = dailyStatCategory.label;
+
         startGame();
+        // If stat was missing (Sleeper fallback mode), still try to load via API
+        if (answer.statValue === null) fetchStatLookup();
     } catch (err) {
         console.error("Failed to load game data:", err);
         loadingMessage.classList.add("hidden-loading");
         errorMessage.classList.remove("hidden-error");
     }
+}
+
+// Fetches 2025 historical player stats and builds statLookup for the stat column.
+// Runs in the background after the game starts; completes before the user's first guess.
+async function fetchStatLookup() {
+    try {
+        const res = await fetch("/api/historical-player-stats?season=2025");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data)) return;
+        for (const p of data) {
+            const key = _normName(p.name);
+            if (key) {
+                statLookup[key] = {
+                    recYds:   p.recYds   || 0,
+                    rushYds:  p.rushYds  || 0,
+                    passYds:  p.passYds  || 0,
+                    recRec:   p.recRec   || 0,
+                    totalTDs: (p.passTDs||0) + (p.rushTDs||0) + (p.recTDs||0),
+                    games:    p.games    || 0,
+                };
+            }
+        }
+        const answerRecord = statLookup[_normName(answer.name)];
+        if (answerRecord) answer.statValue = answerRecord[dailyStatCategory.key] ?? null;
+    } catch (_) {}
 }
 
 // ============================================================
@@ -289,13 +337,23 @@ function insertGuessesArray(currName) {
         console.warn("Player not found in dataset:", currName);
         return;
     }
+    // Read stat from merged player object (has passYds/rushYds etc when 2025 pool is active).
+    // Fall back to statLookup if this is a Sleeper-only player without stats.
+    let statValue = player[dailyStatCategory.key] ?? null;
+    if (statValue === null) {
+        const statRecord = statLookup[_normName(player.full_name)];
+        if (statRecord) statValue = statRecord[dailyStatCategory.key] ?? null;
+    }
+
     // Store at guessCount-1 because guessCount was already incremented in inputEntered
     guessesArray[guessCount - 1] = [
         player.full_name,
         player.team,
         simplifyPosition(player.position), // simplify so comparison functions work correctly
         player.age,
-        player.number
+        player.number,
+        player.college || "",
+        statValue
     ];
 }
 
@@ -310,7 +368,13 @@ function unhideRows() {
     row.classList.remove("hidden-row" + guessCount); // make row visible
 
     Array.from(row.children).forEach((cell, i) => {
-        cell.textContent = guessesArray[guessCount - 1][i];
+        const val = guessesArray[guessCount - 1][i];
+        if (i === 6) {
+            // Stat column: format as localized number or dash
+            cell.textContent = (val != null && val > 0) ? Number(val).toLocaleString() : "—";
+        } else {
+            cell.textContent = val ?? "";
+        }
     });
 
     // requestAnimationFrame defers the class addition by one render tick so the browser
@@ -324,23 +388,38 @@ function unhideRows() {
 // ============================================================
 
 function playerCompare() {
-    // Was: four separate lines, one per column
-    // Now: array of functions mapped to columns 1–4 via forEach
     const row    = document.querySelector(`[data-guess="${guessCount}"]`);
-    const checks = [inDivision, inPositionGroup, inAgeRange, inNumberRange];
+    const checks = [inConference, inPositionGroup, inAgeRange, inNumberRange, inCollegeMatch, inStatRange];
     checks.forEach((fn, i) => {
         row.children[i + 1].style.backgroundColor = fn();
     });
 }
 
-// Returns COLOR_GREEN (exact), COLOR_GOLD (same division), or "" (no match)
-function inDivision() {
+// Returns COLOR_GREEN (exact), COLOR_GOLD (same conference), or "" (no match)
+function inConference() {
     const guessTeam = guessesArray[guessCount - 1][1];
     if (guessTeam === answer.team) return COLOR_GREEN;
-    // for...of is cleaner than a C-style for loop for array iteration
-    for (const div of divisions) {
-        if (div.includes(guessTeam) && div.includes(answer.team)) return COLOR_GOLD;
+    for (const conf of conferences) {
+        if (conf.includes(guessTeam) && conf.includes(answer.team)) return COLOR_GOLD;
     }
+    return "";
+}
+
+// Returns COLOR_GREEN if same college, "" otherwise (no yellow for college)
+function inCollegeMatch() {
+    const guessCollege = guessesArray[guessCount - 1][5];
+    if (!guessCollege || !answer.college) return "";
+    return guessCollege === answer.college ? COLOR_GREEN : "";
+}
+
+// Returns COLOR_GREEN (close), COLOR_GOLD (within range), or "" (no match)
+function inStatRange() {
+    const guessVal  = guessesArray[guessCount - 1][6];
+    const answerVal = answer.statValue;
+    if (guessVal == null || answerVal == null) return "";
+    const diff = Math.abs(guessVal - answerVal);
+    if (diff <= dailyStatCategory.smallRange) return COLOR_GREEN;
+    if (diff <= dailyStatCategory.medRange)   return COLOR_GOLD;
     return "";
 }
 

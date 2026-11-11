@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="NFL player and team stats — Mid Stats">
+    <meta name="description" content="NFL player and team stats — I Suck at Fantasy">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-    <title>NFL Stats — Mid Stats</title>
-    <link rel="stylesheet" href="shared.css?v=3">
-    <link rel="stylesheet" href="stats.css?v=7">
-    <script src="dev-banner.js"></script>
+    <title>NFL Stats — I Suck at Fantasy</title>
+    <link rel="stylesheet" href="shared.css?v=4">
+    <link rel="stylesheet" href="stats.css?v=17">
+    <script>
+        (function(){var t=localStorage.getItem("theme")||"dark";document.documentElement.setAttribute("data-theme",t);})();
+    </script>
 </head>
 <body>
 
     <nav id="navbar">
-        <a href="/" class="nav-brand" title="Mid Stats">
+        <a href="/" class="nav-brand" title="I Suck at Fantasy">
             <span class="nav-emoji">🏈</span>
-            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">Mid</span>
+            <span class="nav-label" style="font-size:.55rem;font-weight:700;letter-spacing:.6px;color:rgba(175,215,255,.65);text-transform:uppercase">ISAF</span>
         </a>
         <a href="/" class="nav-link" title="Home">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
@@ -24,6 +26,10 @@
         <a href="/games.html" class="nav-link" title="Games">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><path d="M8 5V3M16 5V3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/></svg>
             <span class="nav-label">Games</span>
+        </a>
+        <a href="/standings.html" class="nav-link" title="Standings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span class="nav-label">Standings</span>
         </a>
         <a href="/stats.html" class="nav-link active" title="NFL Stats">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
@@ -37,112 +43,96 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             <span class="nav-label">Wordle</span>
         </a>
+        <div class="nav-sep"></div>
+        <button class="nav-icon-btn gsearch-btn" title="Search players &amp; teams" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="nav-icon-btn theme-toggle-btn" aria-label="Toggle theme"></button>
     </nav>
+    <script src="shared.js?v=1"></script>
 
     <main>
 
-        <!-- Season selector -->
-        <div class="season-bar">
-            <span class="season-bar-label">Season</span>
-            <select id="season-select" class="stats-select">
-                <option value="2026">2026 Season (Live)</option>
-                <option value="2025">2025 Season</option>
-            </select>
-            <span id="season-note" class="season-note"></span>
-        </div>
-
-        <!-- Top-level tabs: Players / Teams -->
-        <div class="page-tabs">
-            <button class="page-tab active" data-panel="panel-players">Player Stats</button>
-            <button class="page-tab" data-panel="panel-teams">Team Stats</button>
-        </div>
-
-        <!-- ===== PLAYER STATS ===== -->
-        <div id="panel-players" class="page-panel">
-
-            <div class="sub-tabs">
-                <button class="sub-tab active" data-panel="sub-compare">Comparison</button>
-                <button class="sub-tab" data-panel="sub-pcharts">Charts</button>
+        <!-- Top controls -->
+        <div class="stats-topbar">
+            <div class="topbar-left">
+                <select id="season-select" class="stats-select">
+                    <option value="2026">2026 Season</option>
+                    <option value="2025">2025 Season</option>
+                </select>
             </div>
+            <div class="topbar-right">
+                <button id="seed-btn" class="seed-btn hidden" title="Fetch remaining player game logs">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span id="seed-btn-label">Fetch logs</span>
+                </button>
+                <div id="seed-progress-bar" class="seed-progress-bar hidden">
+                    <div id="seed-progress-fill" class="seed-progress-fill"></div>
+                </div>
+                <span id="seed-status-text" class="seed-status-text"></span>
+                <button id="reload-db-btn" class="reload-db-btn" title="Reload 2025 stats from database">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+            </div>
+        </div>
 
-            <!-- Player Comparison -->
-            <div id="sub-compare" class="sub-panel">
-                <div class="compare-controls">
-                    <div class="control-group">
-                        <label class="control-label">Position</label>
-                        <select id="pos-select" class="stats-select">
-                            <option value="QB" selected>QB</option>
-                            <option value="RB">RB</option>
-                            <option value="WR">WR</option>
-                            <option value="TE">TE</option>
-                        </select>
+        <!-- Position / view tabs -->
+        <div class="view-tabs-row">
+            <div class="view-tabs-player">
+                <button class="view-tab active" data-view="QB">QB</button>
+                <button class="view-tab" data-view="RB">RB</button>
+                <button class="view-tab" data-view="WR">WR</button>
+                <button class="view-tab" data-view="TE">TE</button>
+                <button class="view-tab" data-view="DEF">DEF</button>
+                <button class="view-tab" data-view="Rookie">Rookie</button>
+            </div>
+            <div class="view-tab-sep"></div>
+            <div class="view-tabs-team">
+                <button class="view-tab" data-view="Teams">Teams</button>
+            </div>
+        </div>
+
+        <!-- Player panel -->
+        <div id="panel-players">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title" id="lb-title">QB Leaderboard</span>
+                    <button id="playoff-toggle-btn" class="playoff-toggle-btn" title="Include or exclude playoff games">Playoffs Off</button>
+                </div>
+                <div class="lb-search-row">
+                    <div class="lb-search-wrap">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lb-search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="lb-search" class="lb-search-input" placeholder="Search players or teams…" autocomplete="off" spellcheck="false">
+                        <button id="lb-search-clear" class="lb-search-clear hidden" aria-label="Clear search">✕</button>
                     </div>
-                    <div id="player-selects" class="player-selects">
-                        <p class="loading-note">Loading players…</p>
-                    </div>
                 </div>
-                <div id="compare-table-wrap"></div>
-            </div>
-
-            <!-- Player Charts -->
-            <div id="sub-pcharts" class="sub-panel hidden">
-                <div class="chart-pos-tabs">
-                    <button class="chart-pos-btn active" data-pos="QB">QB</button>
-                    <button class="chart-pos-btn" data-pos="RB">RB</button>
-                    <button class="chart-pos-btn" data-pos="WR">WR</button>
-                    <button class="chart-pos-btn" data-pos="TE">TE</button>
+                <div class="table-scroll" id="leaderboard-wrap">
+                    <p class="loading-msg">Loading…</p>
                 </div>
-                <div id="player-charts-area"></div>
             </div>
-
+            <div class="charts-row" id="player-charts-area"></div>
         </div>
 
-        <!-- ===== TEAM STATS ===== -->
-        <div id="panel-teams" class="page-panel hidden">
-
-            <div class="sub-tabs">
-                <button class="sub-tab active" data-panel="sub-tlist">Rankings</button>
-                <button class="sub-tab" data-panel="sub-tcharts">Charts</button>
-            </div>
-
-            <!-- Team Rankings Table -->
-            <div id="sub-tlist" class="sub-panel">
-                <p class="section-note">All 32 NFL Teams — 2025 Season. Click a column header to sort.</p>
-                <div class="table-scroll">
-                    <table id="team-table" class="stats-table">
-                        <thead>
-                            <tr>
-                                <th class="col-team">Team</th>
-                                <th class="sortable" data-col="ppg">PPG <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-col="ypg">YPG <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-col="yapg">Yds Allowed/G <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-col="papg">Pts Allowed/G <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-col="sos">Opp. SOS <span class="sort-icon">⇅</span></th>
-                            </tr>
-                            <tr class="filter-row">
-                                <td><input class="filter-input" data-col="name" placeholder="Filter team…"></td>
-                                <td><input class="filter-input" data-col="ppg" placeholder="e.g. >25"></td>
-                                <td><input class="filter-input" data-col="ypg" placeholder="e.g. >350"></td>
-                                <td><input class="filter-input" data-col="yapg" placeholder="e.g. <340"></td>
-                                <td><input class="filter-input" data-col="papg" placeholder="e.g. <25"></td>
-                                <td><input class="filter-input" data-col="sos" placeholder="e.g. >0.5"></td>
-                            </tr>
-                        </thead>
-                        <tbody id="team-tbody"></tbody>
-                    </table>
+        <!-- Teams panel -->
+        <div id="panel-teams" class="hidden">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Team Rankings</span>
+                    <button id="team-playoff-toggle-btn" class="playoff-toggle-btn" title="Include or exclude playoff games">Playoffs Off</button>
+                </div>
+                <div class="table-scroll" id="team-table-wrap">
+                    <p class="loading-msg">Loading…</p>
                 </div>
             </div>
-
-            <!-- Team Charts -->
-            <div id="sub-tcharts" class="sub-panel hidden">
-                <p class="section-note">All 32 NFL Teams — 2025 Season</p>
-                <div id="team-charts"></div>
-            </div>
-
+            <div class="charts-row" id="team-charts-area"></div>
         </div>
 
     </main>
 
-    <script src="stats.js?v=7" defer></script>
+    <script>
+        const s = document.createElement('script');
+        s.src = 'stats.js?v=17-' + Date.now();
+        document.head.appendChild(s);
+    </script>
 </body>
 </html>

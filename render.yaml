@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: nfl-wordle
+    runtime: node
+    buildCommand: npm install
+    startCommand: NO_POLL=1 node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NO_POLL
+        value: "1"
+      - key: RAPIDAPI_KEY
+        sync: false   # set manually in Render dashboard
+      - key: GITHUB_REPO
+        value: thomaslapus/nfl-wordle
+      - key: GITHUB_TOKEN
+        sync: false   # set manually in Render dashboard (repo:read PAT)
