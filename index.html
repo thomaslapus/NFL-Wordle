@@ -7,7 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
     <title>I Suck at Fantasy</title>
     <link rel="stylesheet" href="shared.css?v=4">
-    <link rel="stylesheet" href="index.css?v=4">
+    <link rel="stylesheet" href="index.css?v=5">
     <script>
         (function(){var t=localStorage.getItem("theme")||"dark";document.documentElement.setAttribute("data-theme",t);})();
     </script>
@@ -31,9 +31,17 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             <span class="nav-label">Standings</span>
         </a>
+        <a href="/rankings.html" class="nav-link" title="Power Rankings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="14" width="5" height="8" rx="1"/><rect x="9.5" y="10" width="5" height="12" rx="1"/><rect x="17" y="6" width="5" height="16" rx="1"/></svg>
+            <span class="nav-label">Rankings</span>
+        </a>
         <a href="/stats.html" class="nav-link" title="NFL Stats">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/></svg>
             <span class="nav-label">Stats</span>
+        </a>
+        <a href="/compare.html" class="nav-link" title="Compare Players">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="9" height="13" rx="1.5"/><rect x="14" y="6" width="9" height="13" rx="1.5"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            <span class="nav-label">Compare</span>
         </a>
         <a href="/fantasy.html" class="nav-link" title="Fantasy">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 01-2-2V5h4"/><path d="M18 9h2a2 2 0 002-2V5h-4"/><path d="M6 3h12v7a6 6 0 01-12 0z"/><path d="M12 16v2"/><path d="M9 22h6"/><path d="M10 18h4"/></svg>
@@ -54,18 +62,59 @@
     <main>
         <div id="hero">
             <h1 id="hero-title">I Suck at Fantasy</h1>
-            <p id="hero-sub">Your NFL hub — games, stats, wordle &amp; fantasy</p>
+            <p id="hero-sub">Your NFL hub — live scores, standings, stats &amp; more</p>
+            <div class="hero-cta-row">
+                <a href="/games.html" class="hero-cta">View Today's Games</a>
+                <a href="/stats.html" class="hero-cta-ghost">Player Stats</a>
+            </div>
         </div>
 
+        <!-- Season Leaders -->
+        <div class="home-section">
+            <div class="section-header">
+                <h2>2026 Season Leaders</h2>
+                <a href="/stats.html" class="section-link">Full Stats →</a>
+            </div>
+            <div id="top-performers" class="top-performers-grid">
+                <div class="skeleton-block"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div>
+                <div class="skeleton-block"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div>
+                <div class="skeleton-block"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div>
+            </div>
+        </div>
+
+        <!-- Division Leaders Snapshot -->
+        <div class="home-section">
+            <div class="section-header">
+                <h2>Division Leaders</h2>
+                <a href="/standings.html" class="section-link">Full Standings →</a>
+            </div>
+            <div id="standings-snap" class="standings-snap-grid">
+                <div class="skeleton-block"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row short"></div></div>
+                <div class="skeleton-block"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row short"></div></div>
+            </div>
+        </div>
+
+        <!-- Feature Cards -->
         <div id="cards">
-            <a href="/fantasy.html" class="card">
+            <a href="/rankings.html" class="card">
                 <div class="card-left">
                     <div class="card-icon">🏆</div>
-                    <h2>Fantasy</h2>
+                    <h2>Rankings</h2>
                 </div>
                 <div class="card-right">
-                    <p>Link your Sleeper, ESPN, or Yahoo league — view your roster, rankings, and weekly projections.</p>
-                    <span class="card-tag tag-soon">Beta</span>
+                    <p>Algorithmic power rankings for all 32 teams — updated weekly using record, offense, and defense.</p>
+                    <span class="card-tag tag-live">View Rankings</span>
+                </div>
+            </a>
+
+            <a href="/compare.html" class="card">
+                <div class="card-left">
+                    <div class="card-icon">⚔️</div>
+                    <h2>Compare</h2>
+                </div>
+                <div class="card-right">
+                    <p>Search any two players and compare their stats side by side with week-by-week sparkline charts.</p>
+                    <span class="card-tag tag-accent">Compare Players</span>
                 </div>
             </a>
 
@@ -86,7 +135,7 @@
                     <h2>NFL Stats</h2>
                 </div>
                 <div class="card-right">
-                    <p>Player and team stats from the 2025 season — compare, chart, and rank by any metric.</p>
+                    <p>Player and team stats from 2025 and 2026 — compare, chart, and rank by any metric.</p>
                     <span class="card-tag tag-accent">Explore</span>
                 </div>
             </a>
@@ -101,8 +150,28 @@
                     <span class="card-tag tag-live">Play Now</span>
                 </div>
             </a>
+
+            <a href="/fantasy.html" class="card">
+                <div class="card-left">
+                    <div class="card-icon">🏅</div>
+                    <h2>Fantasy</h2>
+                </div>
+                <div class="card-right">
+                    <p>Link your Sleeper league — view your roster, rankings, and weekly projections.</p>
+                    <span class="card-tag tag-soon">Beta</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="home-footer">
+            <a href="/about.html" class="about-link">About this project →</a>
         </div>
     </main>
 
+    <script>
+        const s = document.createElement('script');
+        s.src = 'index.js?v=1-' + Date.now();
+        document.head.appendChild(s);
+    </script>
 </body>
 </html>

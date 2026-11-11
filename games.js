@@ -1072,3 +1072,19 @@ if (document.readyState === "loading") {
 } else {
     init();
 }
+
+// ── Keyboard navigation ────────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const next = activeIdx + (e.key === "ArrowRight" ? 1 : -1);
+        if (next >= 0 && next < SCHEDULE_DATES.length) {
+            showDay(next);
+            setTimeout(() => {
+                const active = document.querySelector(".cal-day.active");
+                if (active) active.scrollIntoView({ inline: "center", behavior: "smooth" });
+            }, 50);
+        }
+    }
+});

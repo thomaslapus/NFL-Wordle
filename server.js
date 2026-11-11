@@ -1947,6 +1947,73 @@ const server = http.createServer(async (req, res) => {
             return sendJson(200, result, 900);
         }
 
+        // ── /api/power-rankings?season=YYYY ──────────────────────────
+        if (urlPath === "/api/power-rankings") {
+            if (!nflDb) return sendJson(503, { error: "DB unavailable" });
+            const season = parseInt(parsed.searchParams.get("season") || "2026");
+            try {
+                const rows = nflDb.prepare(`
+                    SELECT t.abbr, t.name, t.conference, t.division,
+                           COALESCE(ts.won, 0)  AS won,
+                           COALESCE(ts.lost, 0) AS lost,
+                           COALESCE(ts.tied, 0) AS tied,
+                           COALESCE(ts.ppg, 0)  AS ppg,
+                           COALESCE(ts.papg, 0) AS papg
+                    FROM teams t
+                    LEFT JOIN team_season_stats_2026 ts ON ts.abbr = t.abbr
+                `).all();
+
+                const maxPpg = Math.max(...rows.map(r => r.ppg || 0), 1);
+                const maxPapg = Math.max(...rows.map(r => r.papg || 0), 1);
+
+                const scored = rows.map(r => {
+                    const g = r.won + r.lost + r.tied;
+                    const pct = g ? (r.won + r.tied * 0.5) / g : 0;
+                    const diff = (r.ppg || 0) - (r.papg || 0);
+                    // Power score: 40% record, 30% PPG, 20% PA, 10% point diff
+                    const power = pct * 0.4 + (r.ppg / maxPpg) * 0.3 + (1 - r.papg / maxPapg) * 0.2 + (diff > 0 ? Math.min(diff / 20, 1) : 0) * 0.1;
+                    return { ...r, pct: +pct.toFixed(3), diff: +diff.toFixed(1), power: +power.toFixed(4) };
+                });
+
+                scored.sort((a, b) => b.power - a.power);
+                const result = scored.map((r, i) => ({ ...r, rank: i + 1 }));
+                return sendJson(200, result, 900);
+            } catch (err) {
+                return sendJson(500, { error: err.message });
+            }
+        }
+
+        // ── /api/top-performers?season=YYYY ───────────────────────────
+        if (urlPath === "/api/top-performers") {
+            if (!nflDb) return sendJson(503, { error: "DB unavailable" });
+            const season = parseInt(parsed.searchParams.get("season") || "2026");
+            const tbl = season === 2026 ? "season_player_totals_2026" : "season_player_totals_2025";
+            try {
+                const q = (pos, orderCol, limit = 3) => nflDb.prepare(`
+                    SELECT p.espn_id AS espnId, p.name, p.position AS pos,
+                           COALESCE(t.team_abbr, '—') AS team,
+                           COALESCE(t.passing_yds,0) AS passYds, COALESCE(t.passing_tds,0) AS passTDs,
+                           COALESCE(t.rushing_yds,0) AS rushYds, COALESCE(t.rushing_tds,0) AS rushTDs,
+                           COALESCE(t.receptions,0)  AS recs,    COALESCE(t.receiving_yds,0) AS recYds,
+                           COALESCE(t.receiving_tds,0) AS recTDs,
+                           COALESCE(t.fantasy_pts_ppr,0) AS fantPts,
+                           COALESCE(t.games_played,0) AS gp
+                    FROM players p JOIN ${tbl} t ON t.espn_id = p.espn_id
+                    WHERE p.position = ? AND t.${orderCol} > 0
+                    ORDER BY t.${orderCol} DESC LIMIT ?
+                `).all(pos, limit);
+
+                return sendJson(200, {
+                    passers:   q("QB", "passing_yds"),
+                    rushers:   q("RB", "rushing_yds"),
+                    receivers: q("WR", "receiving_yds"),
+                    te:        q("TE", "receiving_yds", 1),
+                }, 900);
+            } catch (err) {
+                return sendJson(500, { error: err.message });
+            }
+        }
+
         // ── /api/team-stats ───────────────────────────────────────────
         if (urlPath === "/api/team-stats") {
             if (!teamStats) {
@@ -2552,6 +2619,14 @@ const server = http.createServer(async (req, res) => {
             } catch (err) {
                 return sendJson(502, { error: err.message });
             }
+        }
+
+        // ── /game/:gameID — serve game recap page ─────────────────────
+        if (urlPath.startsWith("/game/")) {
+            const html = fs.readFileSync(path.join(__dirname, "game.html"));
+            res.writeHead(200, { "Content-Type": "text/html", "Cache-Control": "no-cache" });
+            res.end(html);
+            return;
         }
 
         // ── Static files ──────────────────────────────────────────────
