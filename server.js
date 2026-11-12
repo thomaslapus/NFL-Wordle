@@ -31,10 +31,9 @@ const NFL_SEASON    = 2026;
 // Each cycle = 1 call to getNFLGamesForDate + up to 4 box-score calls for live detail.
 const LIVE_POLL_MS = 120_000;
 
-// Set LIVE_POLLING=false (or NO_POLL=1) to start the server without any API calls.
-// Useful during DB seeding days when the budget is exhausted.
-//   LIVE_POLLING=false node server.js
-const LIVE_POLLING = process.env.LIVE_POLLING !== "false" && process.env.NO_POLL !== "1";
+// Live polling is permanently disabled — the server makes zero autonomous API calls.
+// All data is served from the SQLite DB and static cache files only.
+const LIVE_POLLING = false;
 
 // ── Persistent cache directory ────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, "data");
